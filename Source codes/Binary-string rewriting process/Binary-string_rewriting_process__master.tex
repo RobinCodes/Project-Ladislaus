@@ -1,0 +1,489 @@
+\documentclass[11pt,reqno]{amsart}
+\usepackage{lmodern}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amssymb,amsmath,amsthm,mathtools}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{float}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage[margin=1in]{geometry}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{thm}[theorem]{Theorem}
+\newtheorem{proposition}{Proposition}
+\newtheorem{lemma}{Lemma}
+\newtheorem{corollary}{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\newtheorem{example}{Example}
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+\newtheorem{observation}{Observation}
+\newtheorem{conjecture}{Conjecture}
+\newtheorem{question}{Question}
+
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\F}{\mathbb{F}}
+\newcommand{\ord}{\operatorname{ord}}
+\DeclareMathOperator{\lcm}{lcm}
+\newcommand{\gen}[1]{\langle #1 \rangle}
+\newcommand{\dvd}{\mid}
+\newcommand{\Sa}{S_a}
+\newcommand{\half}{\tfrac12}
+\DeclareMathOperator{\popcount}{w}
+
+\title[An iterated binary-string rewriting process]{On an iterated binary-string rewriting process}
+\author{Robin Rovenszky}
+\author{notxxdog}
+\date{May 27, 2026}
+\subjclass[2020]{Primary 11B85, 68R15; Secondary 37B10, 68Q45, 11B37}
+\keywords{Symbolic dynamics, binary strings, rewriting systems, halting problem, Collatz-type iteration, Turing machines, finite automata reduction, seed dependence, alternating bit-sum}
+\thanks{Prepared with substantial assistance from an artificial-intelligence system; see Appendix~\ref{app:ai}. Author contacts: Robin Rovenszky (\texttt{robincodes} on Discord) and notxxdog (\texttt{.notxxdog} on Discord).}
+
+\begin{document}
+\begin{abstract}
+We study a deterministic rewriting map $F$ on finite binary strings that carries an integer counter $s$ and halts precisely when $s$ falls below $2$, and we ask, for an arbitrary seed $L_0$, whether the trajectory it generates is infinite.  The map strictly lengthens its argument, so it has no periodic points; every orbit is a simple path that either halts in finite time or diverges, and the entire cycle-elimination half of a Collatz-type problem is absent.  We develop the structural theory at the level of the map: the counter is an alternating, run-length functional (Proposition~\ref{prop:counter}) whose vanishing is a fragile shape (Corollary~\ref{cor:halting}); a single application reshapes runs by explicit identities (\S\ref{sec:struct}); odd parity forces survival and doubling (Lemma~\ref{lem:odd}); and a first halt at index $N$ forces $s_{N-2}\le 5$ (Proposition~\ref{prop:firsthalt}).  We characterize the seeds that halt immediately (Proposition~\ref{prop:step0}), give the prefix-alternation invariant with its parity governed by the seed (Proposition~\ref{prop:prefix}), recast $F$ as a faithful integer conjugate of Collatz type (\S\ref{sec:equiv}), and analyse the backward, predecessor-counting route (\S\ref{sec:backward}).  The distinguished seed $L_0=10$ appears here as one example (\S\ref{sec:seed10}): its counter grazes the halting threshold exactly once and then explodes; we record an independent, machine-verified exclusion of its all-even ($s=0$) halting mode by encoding the process as a $2$-state, $5$-symbol Turing machine and citing a Finite Automata Reduction non-halting certificate from the Busy Beaver Challenge.  We then show that the seed $10$ is atypically tame: for most non-halting seeds two-step monotonicity fails and a positive fraction graze the threshold value $2$ repeatedly and survive (\S\ref{sec:general}).  The residual inequality on which a complete proof founders is the same for every infinite orbit and is a property of $F$, not of any seed (\S\ref{sec:wall}); two independent, cross-validated engines support the empirical claims.  We close with conjectures and open questions.  The central non-halting theorem remains open.
+\end{abstract}
+
+\maketitle
+\tableofcontents
+
+\section{Introduction}\label{sec:intro}
+The process studied here is easy to define and stubbornly resistant to complete analysis. A fixed rewriting rule is iterated on binary strings; the rule carries a small integer counter and is engineered to stop the iteration the instant the counter drops below the threshold~$2$. From a seed $L_0$ one forms $L_{n+1}=F(L_n)$ and asks whether the orbit is infinite. We take the seed as a variable and study the map itself, with the distinguished seed $L_0=10$ appearing as a worked example (\S\ref{sec:seed10}).
+
+The architecture of the analysis is the following. Almost every structural fact is a property of one application of $F$, hence of the map and of every seed alike; the seed enters only through a base case, a finite list of small counter values, and the shape of the orbit's encounter with the threshold. Modulo one structural input---that a particular all-even halting value is not attained---the question for a given seed is equivalent to a single inequality on the size of the counter, driven by a transparent geometric mechanism. We establish the seed-independent structure, prove the governing inequality in a structurally identified sub-case, characterize the seeds that halt immediately, and pin down sharply the one configuration on which a complete proof still founders---and which is the same for every seed.
+
+\subsection*{Conventions} Strings are finite words over $\{0,1\}$; positions are numbered $1,2,3,\dots$ from the left. For $w\in\{0,1\}^*$ we write $\nu(w)$ for the number of $1$'s and $\omega(w)$ for the number of odd-length maximal runs of $1$'s. Concatenation is juxtaposition or a dot, and $u^k$ is the $k$-fold concatenation. We call a string \emph{even} (resp.\ \emph{odd}) when $\nu$ is even (resp.\ odd); this ``parity'' refers to $\nu$. Leading $0$'s are never modified by $F$ and ride along as an inert prefix, so without loss of generality every seed begins with $1$; trailing $0$'s affect the odd pad and the counter and are tracked honestly. For $L$ with $\nu(L)\ge 1$, $r_1(L)$ is the length of the first maximal $1$-run and $c_1(L)$ the length of the first internal $0$-run.
+
+\begin{definition}[The map $F$]\label{def:F}
+For $L\in\{0,1\}^*$, the value $F(L)$, when defined, is computed in three steps.
+
+\emph{Step 1 (pad; seed the counter).} Let $k=\nu(L)$. If $k$ is even, append $00$ and set $s:=0$; if $k$ is odd, append $0001$ and set $s:=-1$. Call the result $L^{(1)}$; note $\nu(L^{(1)})$ is even.
+
+\emph{Step 2 (pair the $1$'s; fill and count).} Let $p_1<\dots<p_{2m}$ be the positions of the $1$'s in $L^{(1)}$, grouped into consecutive pairs. For $j=1,\dots,m$: set positions $p_{2j-1},\dots,p_{2j}-1$ to $1$; set $p_{2j}$ to $0$; add $p_{2j}-p_{2j-1}-1$ to $s$. Call the result $L^{(2)}$.
+
+\emph{Step 3 (halt or extend).} If $s<2$, the process halts and $F(L)$ is undefined; otherwise $F(L):=L^{(2)}\cdot(0110)^{s-2}$.
+\end{definition}
+
+\begin{definition}[Trajectory]\label{def:traj}
+Fix a seed $L_0$ and set $L_{n+1}:=F(L_n)$ whenever the right-hand side is defined. Write $s_n$ for the counter computed during $F(L_n)$. The seed $L_0$ is \emph{non-halting} if $L_n$ is defined for all $n\ge 0$, equivalently $s_n\ge 2$ for all $n$.
+\end{definition}
+
+\begin{thm}[Central question, open]\label{thm:central}
+There exist non-halting seeds. We conjecture that $L_0=10$ is one; we do not prove it, and we believe it is not within reach of elementary methods. What we provide is the seed-independent structure, a reduction to a single scalar inequality, and a sharply delimited residual obstruction common to all seeds.
+\end{thm}
+
+\subsection{Summary of results}
+\begin{enumerate}[label=(\roman*)]
+\item No cycles, hence a clean dichotomy (Theorem~\ref{thm:nocycles}): $F$ strictly lengthens, so it has no periodic points; every orbit is a simple path, finite (halting) or diverging.
+\item The run-length calculus (Proposition~\ref{prop:counter}, Corollary~\ref{cor:halting}) and the reshaping identities (\S\ref{sec:struct}), all properties of the map.
+\item Immediate halts characterized (Proposition~\ref{prop:step0}).
+\item Prefix alternation with seed-controlled parity (Proposition~\ref{prop:prefix}) and the all-even exclusion (\S\ref{sec:prefix}); $s=0$ is not excluded for all seeds ($F(1)=11110$), but is excluded on the orbit of $10$ by two independent routes, including a Turing-machine encoding certified non-halting by Finite Automata Reduction (Remark~\ref{rem:TM}).
+\item The reduction to $s_{N-2}\le 5$ at a first halt (Proposition~\ref{prop:firsthalt}) and an even-step floor giving two-step monotonicity at even-after-even steps (Theorem~\ref{thm:floor}).
+\item The counter-inert tail and body localization (Lemma~\ref{lem:inert}, Observation~\ref{obs:decomp}), the $\nu$-recurrence (Proposition~\ref{prop:nu}), and three exact conjugacies (\S\ref{sec:equiv}).
+\item The backward viewpoint and the first-halt analysis (\S\ref{sec:backward}).
+\item The distinguished seed $10$ (\S\ref{sec:seed10}) and the demonstration that it is atypical: two-step monotonicity and a single threshold graze are not generic (\S\ref{sec:general}).
+\item The wall (\S\ref{sec:wall}): the residual even-after-odd inequality is a property of $F$; every infinite orbit meets it. Conjectures and open questions follow (\S\ref{sec:conj}--\S\ref{sec:open}).
+\end{enumerate}
+
+\section{Elementary structure and no cycles}\label{sec:elem}
+\begin{lemma}[$F$ strictly lengthens]\label{lem:length}
+Whenever $F(L)$ is defined, $|F(L)|\ge|L|+2$.
+\end{lemma}
+\begin{proof}
+Step 1 appends two or four symbols; Step 2 preserves length; Step 3 appends $4(s-2)\ge 0$ symbols.
+\end{proof}
+
+\begin{lemma}[Outputs end in $0$]\label{lem:end0}
+Whenever $F(L)$ is defined, its last symbol is $0$; hence every defined iterate ends in $0$.
+\end{lemma}
+\begin{proof}
+Step 2 sets the position of the last $1$ of $L^{(1)}$ to $0$ and no later position holds a $1$; if $s=2$ then $F(L)=L^{(2)}$ ends in that $0$, and if $s>2$ it ends in the final $0$ of the last block $0110$.
+\end{proof}
+
+\begin{thm}[No cycles; the dichotomy]\label{thm:nocycles}
+For every seed, the iterates $L_0,L_1,\dots$ are pairwise distinct. Hence $F$ has no periodic points and no nontrivial cycles, and each orbit is a simple path that is either finite (it reaches a string on which $F$ is undefined) or infinite with $|L_n|\to\infty$ strictly.
+\end{thm}
+\begin{proof}
+By Lemma~\ref{lem:length} the lengths strictly increase along any orbit, so no string recurs; in particular $F^k(X)=X$ ($k\ge 1$) is impossible. A deterministic, non-repeating orbit is a simple path, terminating exactly at a halt and otherwise continuing forever.
+\end{proof}
+
+A first consequence, central to the backward viewpoint (\S\ref{sec:backward}): every string has only finitely many iterated preimages under $F$, since a preimage is strictly shorter; thus orbit-membership is decidable. Theorem~\ref{thm:nocycles} also removes from the present problem the cycle-elimination task that is the heart of the Collatz problem: here only halt versus diverge is at issue. We write $\mathcal H$ for the set of halting seeds.
+
+\section{Odd parity forces survival}\label{sec:odd}
+\begin{lemma}[Odd-parity lemma]\label{lem:odd}
+If $\nu(L)$ is odd, then the counter computed during $F(L)$ satisfies $s\ge 2$. Moreover if $L=W\cdot(0110)^u$ with $u\ge 1$ and $W$ ending in $0$, then $s\ge 2u+2$.
+\end{lemma}
+\begin{proof}
+Write $k=\nu(L)$ odd and $L=L_f\cdot 1\cdot 0^b$ with $b\ge 0$. Step 1 appends $0001$, giving $L^{(1)}=L_f\cdot 1\cdot 0^{b+3}\cdot 1$; now $\nu(L^{(1)})$ is even and the last pair contributes $p_{2m}-p_{2m-1}-1=b+3\ge 3$. Since every pair contributes $\ge 0$ and $s$ began at $-1$, $s\ge 2$. The growth bound follows by counting the cross pair joining $W$ to the tail and the $u-1$ interior tail pairs of gap $2$.
+\end{proof}
+
+From here only even-parity strings can halt. For even parity, $s=\sum_j(p_{2j}-p_{2j-1}-1)\ge 0$, a sum of nonnegative within-pair gaps; nothing forbids $s\in\{0,1\}$, and locating those is the next task.
+
+\section{The run-length calculus}\label{sec:rl}
+Write the run-length encoding of $L$ (with at least one $1$) as $L=0^{c_0}1^{r_1}0^{c_1}\cdots 1^{r_R}0^{c_R}$, with $R\ge 1$, $r_i\ge 1$, internal $c_i\ge 1$. Put $C_i=r_1+\cdots+r_i$, so $C_0=0$, $C_R=\nu(L)$.
+
+\begin{proposition}[Counter formula]\label{prop:counter}
+If $\nu(L)$ is even, the counter computed during $F(L)$ is
+\[ s=\sum_{1\le i\le R-1,\ C_i\text{ odd}} c_i. \]
+\end{proposition}
+\begin{proof}
+Step 1 adds no $1$'s, so the $1$'s of $L$ pair as $\{1,2\},\{3,4\},\dots$. The boundary between runs $i$ and $i+1$ is spanned by a pair iff $C_i$ is odd, contributing $c_i$; same-run pairs contribute $0$; the index $i=R$ does not arise. Summing gives the claim.
+\end{proof}
+
+\begin{corollary}[Halting dichotomy]\label{cor:halting}
+Let $\nu(L)$ be even. Then $F(L)$ halts iff exactly one of: (i) every run length is even ($s=0$, equivalently $\omega(L)=0$); or (ii) the run lengths contain exactly two odd values, at consecutive positions $j_0,j_0+1$, with $c_{j_0}=1$ ($s=1$).
+\end{corollary}
+\begin{proof}
+By Proposition~\ref{prop:counter} and $c_i\ge 1$ internally, $s$ counts internal indices with $C_i$ odd, weighted by $c_i$. The parity sequence $C_0,\dots,C_R$ starts and ends even and toggles at odd-length runs; the two stated profiles are exactly $s=0$ and $s=1$.
+\end{proof}
+
+\section{Structural lemmas}\label{sec:struct}
+Fix $L$, let $\Lambda=L\cdot(\text{pad})$, let the consecutive pairs of $1$'s in $\Lambda$ have within-pair gaps $g_j\ge 0$, $j=1,\dots,m=\tfrac12\nu(\Lambda)$, and set $X(L)=\#\{i:C_i\text{ odd and }\gamma_i\text{ odd}\}$ where $\gamma_i$ are the internal $0$-runs of $\Lambda$.
+
+\begin{lemma}[Reshaping]\label{lem:reshape}
+The image $L^{(2)}$ has exactly $m$ runs of $1$'s, the $j$-th of length $g_j+1$; hence $F(L)$ has $1$-runs $g_1+1,\dots,g_m+1$ followed by $s-2$ runs of length $2$. A body run is odd iff its pair has even gap, and the tail contributes only even-length runs.
+\end{lemma}
+
+\begin{lemma}[Reshaping count]\label{lem:reshapecount}
+For every $L$, $\omega(F(L))=m-X(L)$.
+\end{lemma}
+
+\begin{lemma}[Odd-run floor]\label{lem:oddrunfloor}
+With $\mu$ the number of pairs lying inside a single $1$-run of $\Lambda$ and $R'$ the number of $1$-runs of $\Lambda$, $F(L)$ has at least $\mu$ odd-length $1$-runs, and $\mu\ge m-(R'-1)$.
+\end{lemma}
+
+\begin{lemma}[Tail manufactures odd runs]\label{lem:tailodd}
+If $L=W\cdot(0110)^u$ with $u\ge 1$ and $W$ ending in $0$, then $\omega(F(L))\ge u-\varepsilon$ with $\varepsilon=0$ if $\nu(L)$ even and $\varepsilon=1$ if $\nu(L)$ odd.
+\end{lemma}
+
+\begin{lemma}[Counter floor]\label{lem:cfloor}
+If $\nu(L)$ is even, then $s(F(L))\ge\lceil\omega(L)/2\rceil$.
+\end{lemma}
+
+Proofs are the pairing analysis of \S\ref{sec:rl} applied run by run; they are routine and we omit them, having verified each against the engines of Appendix~\ref{app:alg}.
+
+\section{Immediate halts}\label{sec:step0}
+\begin{proposition}[Step-$0$ halts]\label{prop:step0}
+$F(L_0)$ is undefined iff $\nu(L_0)$ is even and either (i) every maximal $1$-run of $L_0$ has even length, or (ii) $L_0$ has exactly two odd-length $1$-runs, adjacent and separated by a single $0$.
+\end{proposition}
+\begin{proof}
+A halt forces $\nu(L_0)$ even (Lemma~\ref{lem:odd}); Step 1's pad $00$ leaves the $1$-run structure unchanged, so Corollary~\ref{cor:halting} applies to $L_0$ directly.
+\end{proof}
+
+The step-$0$ halts form a regular language. Among the $16383$ seeds of length $\le 14$ (beginning with $1$), $4859$ ($\approx 29.7\%$) halt, the halt being early (Table~\ref{tab:stats}); the fraction declines with length (Table~\ref{tab:bylength}). Membership in $\mathcal H$ is recursively enumerable by forward simulation; its decidability is open (Question~\ref{q:dec}).
+
+\section{Prefix dynamics and the all-even profile}\label{sec:prefix}
+\begin{proposition}[Prefix alternation]\label{prop:prefix}
+For all $n\ge 0$, $r_1(L_{n+1})=1$ if $r_1(L_n)\ge 2$, and $r_1(L_{n+1})=c_1(L_n)+1\ (\ge 2)$ if $r_1(L_n)=1$. With $a_n:=[\,r_1(L_n)\ge 2\,]$ one has $a_{n+1}=\lnot a_n$, hence $a_n=a_0\oplus[n\text{ odd}]$ and
+\[ r_1(L_n)=1\iff \begin{cases} n\text{ even}, & r_1(L_0)=1,\\ n\text{ odd}, & r_1(L_0)\ge 2. \end{cases} \]
+\end{proposition}
+\begin{proof}
+The recurrence follows from Lemma~\ref{lem:reshape} applied to the first pair: if $r_1(L_n)\ge 2$ the first two $1$'s are adjacent (gap $0$, run length $1$); if $r_1(L_n)=1$ the first pair straddles the first boundary, giving run length $c_1(L_n)+1$. The closed form solves $a_{n+1}=\lnot a_n$.
+\end{proof}
+
+\begin{proposition}[All-even exclusion]\label{prop:alleven}
+Recall $s_n=0\iff\omega(L_n)=0$. At every index $n$ with $r_1(L_n)=1$ one has $\omega(L_n)\ge 1$, hence $s_n\ne 0$; by Proposition~\ref{prop:prefix} these are the even indices when $r_1(L_0)=1$ and the odd indices when $r_1(L_0)\ge 2$. The exclusion is \emph{not universal} across seeds: the all-even profile does occur as an output of $F$ for some inputs.
+\end{proposition}
+\begin{proof}
+$r_1(L_n)=1$ is an odd-length leading run, so $\omega(L_n)\ge 1$ and $s_n\ne 0$ by Corollary~\ref{cor:halting}. For non-universality, see Remark~\ref{rem:rem18}.
+\end{proof}
+
+\begin{remark}[The all-even profile is reachable as an output]\label{rem:rem18}
+One might hope that every output of $F$ carries a $0$ strictly between its first and last $1$---so that no iterate is a single $1$-run $1^a0^b$, and the all-even profiles would be unreachable from the range of $F$. This is not so. The odd pad $0001$ places the (subsequently zeroed) last $1$ at the very end, leaving no internal $0$; explicitly,
+\[ F(1)=11110=1^40\quad(\text{an output of }F,\ \omega=0),\qquad F(11110)=\text{halt with }s=0. \]
+Thus the all-even profile is reachable as an output, and the exclusion of $s=0$ is a property of particular orbits, not of the range of $F$. The exclusion therefore rests on the prefix argument of Proposition~\ref{prop:alleven}, together with the orbit-of-$10$ certificate of Remark~\ref{rem:TM}.
+\end{remark}
+
+\begin{proposition}[Reduction to a single profile]\label{prop:single}
+On any orbit that excludes the all-even profile, the trajectory halts iff some $s_n=1$.
+\end{proposition}
+\begin{proof}
+A halt has $s_n\in\{0,1\}$ (Lemma~\ref{lem:odd}, Corollary~\ref{cor:halting}); excluding $s_n=0$ leaves $s_n=1$.
+\end{proof}
+
+\section{The reduction to a scalar inequality}\label{sec:reduction}
+\begin{proposition}[First-halt bound]\label{prop:firsthalt}
+If the orbit of any seed first halts at index $N\ge 2$, then $s_{N-2}\le 5$.
+\end{proposition}
+\begin{proof}
+At the halt $\nu(L_N)$ is even and $s_N\in\{0,1\}$, so $\omega(L_N)\in\{0,2\}\le 2$ (Corollary~\ref{cor:halting}). Since $N\ge 2$, $L_{N-1}=L^{(2)}_{N-1}\cdot(0110)^u$ with $u=s_{N-2}-2\ge 0$ and $L^{(2)}_{N-1}$ ending in $0$. If $u=0$, $s_{N-2}=2$; if $u\ge 1$, Lemma~\ref{lem:tailodd} gives $\omega(L_N)\ge u-1=s_{N-2}-3$, so $s_{N-2}-3\le 2$.
+\end{proof}
+
+\begin{corollary}[Remaining content]\label{cor:remaining}
+A seed is non-halting provided $s_n\ge 6$ for all $n\ge 3$ and $s_0,\dots,s_2\ge 2$; a fortiori it is non-halting if the counter satisfies the two-step monotonicity $s_n\ge s_{n-2}$ for all $n\ge 3$ together with $s_1,s_2\ge 2$.
+\end{corollary}
+\begin{proof}
+By Proposition~\ref{prop:firsthalt} a first halt forces $s_{N-2}\le 5$, so $N\le 4$ once $s_n\ge 6$ for $n\ge 3$; checking $s_0,s_1,s_2$ excludes early halts. Monotonicity propagates the small even/odd subsequence values.
+\end{proof}
+
+The mechanism behind the inequality is explicit. At an odd-parity step, Lemma~\ref{lem:odd} gives $s_n\ge 2s_{n-1}-2$, so odd steps at least double the counter. The counter can lose ground only at an even-parity step, where Lemmas~\ref{lem:cfloor} and~\ref{lem:tailodd} give $s_n\ge\lceil(s_{n-2}-3)/2\rceil$, at most a near-halving. A long run of even steps could in principle compound several near-halvings; the next results control the benign case.
+
+\begin{thm}[Even-step floor with even-parity predecessor]\label{thm:floor}
+Suppose step $n$ is even parity, step $n-1$ is also even parity, and $u:=s_{n-2}-2\ge 1$. Then the last $u$ body $1$-runs of $L_n$ have length $1$ and are separated by internal $0$-runs of length exactly $3$, whence
+\[ s_n\ge 3\Bigl\lfloor\frac{u-1}{2}\Bigr\rfloor\ge \tfrac32 s_{n-2}-6, \]
+so $s_n\ge s_{n-2}$ whenever $s_{n-2}\ge 12$. Thus two-step monotonicity holds at every even-after-even step, with finitely many small cases to check directly.
+\end{thm}
+\begin{proof}
+The tail $(0110)^u$ of $L_{n-1}$ carries $2u$ ones; since both steps are even parity, the body $1$'s pair among themselves and the tail $1$'s pair within the tail, each block $11$ reshaping to a single $1$ followed by the zeroed endpoint and the separating $00$---three $0$'s. The image of the tail region is $(1\,000)^{u-1}1$: $u$ single-$1$ runs separated by $0$-runs of length $3$. Across these the cumulative count rises by $1$ per run, so at least $\lfloor(u-1)/2\rfloor$ of the $u-1$ separators sit at odd cumulative count and contribute $3$ each to the counter formula (Proposition~\ref{prop:counter}). The arithmetic bound and threshold $s_{n-2}\ge 12$ follow.
+\end{proof}
+
+\section{The counter-inert tail and body localization}\label{sec:inert}
+\begin{lemma}[Counter-inert tail]\label{lem:inert}
+Let step $n$ be of even parity, and write $L_n=B\cdot T$ with $T=(0110)^{s_{n-1}-2}$ the tail appended in forming $L_n$ and $B=L^{(2)}_{n-1}$ the body (so $B$ ends in $0$). Then $T$ contributes exactly $0$ to $s_n$, and $s_n$ equals the within-pair-gap sum over $B$ alone.
+\end{lemma}
+\begin{proof}
+Step 1 appends $00$ and the $1$'s of $L_n$ pair consecutively from the left. The tail carries $2(s_{n-1}-2)$ ones, an even number, and $\nu(L_n)$ is even, so $\nu(B)$ is even; the $B$-ones pair among themselves and the tail ones pair within the tail, each tail pair being a block $11$ of gap $0$.
+\end{proof}
+
+\begin{observation}[Body localization]\label{obs:decomp}
+At an even-parity step $n$ the nonzero within-pair gaps occupy exactly the body's pair-slots. Each contributing pair has within-pair gap $e_{2j-1}\ge 1$; decomposing this gap as $1+(e_{2j-1}-1)$ partitions the counter into a count term and a size-surplus term:
+\begin{equation}\label{eq:decomp}
+s_n \;=\; \underbrace{\#\{\text{body boundaries with odd cumulative $1$-count}\}}_{\text{count floor}}
+\;+\;\underbrace{\sum_{\text{those boundaries}}\bigl(e_{2j-1}(\Lambda_{n-1})-1\bigr)}_{\text{size surplus}}.
+\end{equation}
+The count floor is bounded below by $\lceil\omega(L_n)/2\rceil$ (Lemma~\ref{lem:cfloor}), with equality only when each parity-raised interval of the cumulative-$1$-count contributes a single boundary; at tight instances the actual count strictly exceeds this bound. The size surplus is carried by the contributing within-pair gaps of size $\ge 2$. As an illustration, at $n=15$ the count floor is $23{,}273$, the lower bound $\lceil\omega(L_{15})/2\rceil=22{,}455$, the surplus is $5810$, and $s_{15}=23{,}273+5810=29{,}083$ (Appendix~\ref{app:evidence}, Table~\ref{tab:decomp}).
+\end{observation}
+
+\section{The $\nu$-recurrence and parity dynamics}\label{sec:nu}
+\begin{proposition}[$\nu$-recurrence]\label{prop:nu}
+Whenever $F(L)$ is defined, with $\nu=\nu(L)$ and counter $s$,
+\[ \nu(F(L))=\begin{cases}\tfrac{\nu}{2}+3s-4, & \nu\text{ even},\\ \tfrac{\nu+1}{2}+3s-3, & \nu\text{ odd}.\end{cases} \]
+Consequently the parity of $\nu(L_{n+1})$ is determined by $\nu(L_n)\bmod 4$ and $s_n\bmod 2$; for even parity, $\nu(L_{n+1})\equiv\nu(L_n)/2+s_n\pmod 2$.
+\end{proposition}
+\begin{proof}
+$\nu(F(L))=\nu(L^{(2)})+2(s-2)$; by Lemma~\ref{lem:reshape}, $\nu(L^{(2)})=\nu/2+s$ (even) or $(\nu+1)/2+s+1$ (odd). Substitute.
+\end{proof}
+
+The parity of $\nu(L_n)$ decides which regime---odd-step doubling or even-step near-halving---governs step $n$, yet the counter $s_n$ obeys no scalar recurrence: by Proposition~\ref{prop:counter} it depends on the full pattern of odd-cumulative gaps of $L_n$. This non-locality is the structural heart of the difficulty.
+
+\section{Equivalent formulations}\label{sec:equiv}
+Let $\popcount(x)$ be the popcount of $x$ and $V(L)=\mathrm{int}(L,2)$ the binary value (most significant bit first). For $M$ with $\popcount(M)=2m$ and $1$-bit positions $b_1>\dots>b_{2m}\ge 0$, set $S(M)=\sum_i(-1)^{i+1}2^{b_i}$.
+
+\begin{lemma}[Step 2 is doubling of the alternating bit-sum]\label{lem:S}
+If $\nu(L)$ is even and $M=V(L^{(1)})$, then $V(L^{(2)})=2S(M)$. Each pair $(b_{2j-1},b_{2j})$ effects the local change $2^{b_{2j-1}}-3\cdot 2^{b_{2j}}$ to $M$.
+\end{lemma}
+
+The constant $3$ here is the genuine arithmetic kernel of the process---the counterpart of the $3$ in the Collatz map.
+
+\begin{proposition}[Integer conjugate]\label{prop:T}
+Each defined iterate begins with $1$ (Proposition~\ref{prop:prefix}) and ends in $0$ (Lemma~\ref{lem:end0}), so $V$ is a bijection of the reachable strings onto a subset of $\mathbb Z^+$. Through $V$, $F$ is conjugate to a Collatz-type map $T:\mathbb Z^+\dashrightarrow\mathbb Z^+$ given by
+\[ T(N)=2S(M)\cdot 16^{s-2}+6\cdot\frac{16^{s-2}-1}{15}, \]
+where $M=4N$ if $\popcount(N)$ even and $M=16N+1$ if $\popcount(N)$ odd, and $s=s_{\mathrm{init}}+\popcount(S(M))-\tfrac12\popcount(M)$ with $s_{\mathrm{init}}=0$ (resp.\ $-1$) for $\popcount(N)$ even (resp.\ odd); $T$ is defined when $s\ge 2$. In hexadecimal $T(N)$ is the digit string of $2S(M)$ followed by $s-2$ copies of the digit $6$. The seed is $N_0=V(L_0)$, and the question is whether the $T$-orbit of $N_0$ is infinite.
+\end{proposition}
+
+A natural-scale gap-vector conjugate and the scalar-counter form are obtained likewise; the popcount-parity test selecting one of two affine pads, with the kernel constant $3$, is the precise sense in which the process is of Collatz type.
+
+\begin{observation}[No mergers in range]\label{obs:inj}
+On all strings of length $\le 11$ beginning with $1$, $F$ is injective: no two share an image. With Theorem~\ref{thm:nocycles} the reachable graph is a disjoint forest of simple chains; distinct orbits do not merge in range (Conjecture~\ref{conj:inj}).
+\end{observation}
+
+\section{The backward viewpoint}\label{sec:backward}
+Preimages are strictly shorter (Lemma~\ref{lem:length}), so the backward tree of any string is finite and $F$ is exactly invertible.
+
+\begin{proposition}[Invertibility]\label{prop:inv}
+Every $X$ with $F(X)=T$ arises by choosing $u\ge 0$ with $T=Y\cdot(0110)^u$, $Y$ ending in $0$; reconstructing $L^{(1)}$ from the maximal $1$-blocks of $Y$; and deleting a Step-$1$ suffix; one retains $X$ iff $F(X)=T$. There are finitely many preimages.
+\end{proposition}
+
+\begin{proposition}[Shape of a first halt]\label{prop:halt-shape}
+Suppose the orbit of a seed first halts at $N\ge 2$. Then $s_{N-2}\le 5$ (Proposition~\ref{prop:firsthalt}), and by Lemma~\ref{lem:inert} the halt depends only on the body $B=L^{(2)}_{N-1}$: the tail $(0110)^{s_{N-1}-2}$ of $L_N$ contributes $0$ to $s_N$. Consequently the predecessor counter $s_{N-1}$ is not determined by the halt and may be arbitrarily large.
+\end{proposition}
+\begin{proof}
+Proposition~\ref{prop:firsthalt} gives the first claim. At the halt $\nu(L_N)$ is even, so Lemma~\ref{lem:inert} applies to the step computing $s_N$, which therefore depends on $B$ alone, independently of the tail length $s_{N-1}-2$.
+\end{proof}
+
+\begin{remark}[The predecessor counter is not pinned at a first halt]\label{rem:rem31}
+One might expect a first halt to force $s_{N-1}=2$, so that the halting string has an empty tail $L_N=L^{(2)}_{N-1}$. This is not so, and would contradict Lemma~\ref{lem:inert}, which makes the halt independent of $s_{N-1}$. The seed $110011111110$ first halts at $N=8$ with $s_{N-1}=102$ (and halt value $s_N=1$); the seed $1100111$ first halts at $N=2$ with $s_{N-1}=3$. The subtlety is that the tail's $11$ blocks are even runs of $L_N$, not odd runs, so Lemma~\ref{lem:cfloor} gives only $\lceil\omega/2\rceil=1$ rather than $s_N\ge 2$; the halting strings are $B\cdot(0110)^k$ ($k\ge 0$) with $B$ fragile. The finite backward decision procedure---tracing the finite preimage tree of any fixed string to its roots and testing membership of the seed---is exact regardless and dispatches, for the orbit of $10$, every halting string of length $\le 14$.
+\end{remark}
+
+\section{The distinguished seed $L_0=10$}\label{sec:seed10}
+The seed $10$ deserves separate attention as the smallest interesting case.
+
+Running the rule once: $\nu(10)=1$ is odd, so Step 1 appends $0001$, $s=-1$, $L^{(1)}=100001$; filling positions $1$--$5$ and zeroing $6$ gives $111110$ with filled gap $4$, so $s=3$, and $L_1=1111100110$. Continuing,
+\[ L_2=10101110111110011001100110,\qquad L_3=1100101101010001000100010000, \]
+and the counter takes the values $s_0,s_1,s_2,s_3,s_4,\dots=3,5,2,8,31,66,158,\dots$ (Table~\ref{tab:traj}).
+
+Two features organize this orbit. It is \emph{explosive}: from $s_3$ on the counter roughly multiplies each step, and $|L_n|$ exceeds $10^8$ before $n=22$. And it \emph{grazes the threshold exactly once}: $s_2=2$, with no margin, after which the counter never returns to $\{2,3,4,5\}$ through $n=26$. Here $r_1(L_0)=1$, so by Proposition~\ref{prop:prefix} the all-even exclusion (Proposition~\ref{prop:alleven}) is unconditional at even $n$; at the odd indices the small computed values discharge the remaining cases, so the orbit of $10$ excludes the all-even profile throughout. Two-step monotonicity $s_n\ge s_{n-2}$ holds for all $3\le n\le 26$; the tightest instance is the odd$\to$even transition $n=15$, with $s_{15}/s_{13}=29083/28734\approx 1.012$.
+
+\begin{remark}[A Turing-machine certificate for the all-even exclusion]\label{rem:TM}
+The exclusion of the all-even ($s=0$) halt on the orbit of $10$ admits a rigorous, machine-checked proof independent of the prefix argument. Encode the process as the $2$-state, $5$-symbol Turing machine
+\[ \texttt{1RB3LA1RA4LA2RA\quad 2LA---1LA0RA3RB} \]
+(states $A,B$; symbols $0,\dots,4$; the entry \texttt{---} is the undefined, halting transition, on reading $1$ in state $B$), started on the blank tape. By construction, the machine simulates the trajectory and is arranged so that its halting transition is reached precisely when the simulated string attains an all-even configuration; thus, \emph{by construction}, the machine's halting is equivalent to the occurrence of an $s=0$ event. The non-halting of this machine was established by Finite Automata Reduction (FAR), a non-halting decision method developed within the Busy Beaver Challenge collaboration \cite{bbc}: FAR exhibits a finite automaton over tape configurations that contains the initial configuration, is closed under the transition function, and contains no halting configuration, yielding a fully verifiable certificate. The FAR certificate is the formal object of record; an independent reproduction confirmed that the machine runs without halting for $10^7$ steps, consistent with the certificate. Conditional on the certificate---and hence on the constructed encoding equivalence---the orbit of $10$ never attains an $s=0$ configuration, with no length bound. Together with Proposition~\ref{prop:single}, this reduces the halting question for the orbit of $10$ to the $s=1$ profile alone.
+\end{remark}
+
+\section{General seeds: the seed $10$ is atypical}\label{sec:general}
+The single threshold graze and the two-step monotonicity of the orbit of $10$ are not generic.
+
+\begin{observation}[Failure of two-step monotonicity]\label{obs:mono}
+Among the $1136$ non-halting seeds of length $\le 11$, at least $586$ violate $s_n\ge s_{n-2}$ for some $n\ge 3$ within the first $80$ simulated steps, and at least $659$ do so within $150$ steps. The count is non-decreasing as the simulation is extended further, so the exact total is depth-dependent; the robust content is that two-step monotonicity (the clean sufficient condition of Corollary~\ref{cor:remaining}) is failed by a substantial majority of non-halting seeds, hence is a feature of the orbit of $10$, not an invariant available for general seeds.
+\end{observation}
+
+\begin{observation}[Repeated threshold-grazing]\label{obs:graze}
+Define $g(L_0)=\#\{n\ge 1:s_n=2\}$. For $217$ of the $1136$ non-halting seeds of length $\le 11$, $g\ge 1$, with observed values up to $3$. The extreme seed $1100001110$ has
+\[ s=3,10,2,19,2,42,2,87,340,77,836,\dots, \]
+touching the threshold value $2$ at $n=2,4,6$ before exploding; many such seeds return to $s_n\le 5$ after first exceeding $5$. Hence even ``$s_n\ge 6$ eventually'' fails generically, and the only robust criterion is the definitional $s_n\ge 2$ for all $n$.
+\end{observation}
+
+A seed whose orbit were eventually of all-odd parity would be provably non-halting, by the doubling bound $s_n\ge 2s_{n-1}-2$; the longest all-odd prefix we find is $13$ steps (seed $1100011010$), after which the parity turns even. No provably non-halting seed is known (Question~\ref{q:provable}).
+
+\section{Why the problem resists}\label{sec:wall}
+The obstruction is a mismatch between the quantity one must control and the quantities one can compute, and it is the same for every seed. To forbid both fragile profiles at an even step it suffices to know that every even-parity iterate carries at least four odd-length runs; but the only uniform lower bound, $\mu\ge m-(R'-1)$ (Lemma~\ref{lem:oddrunfloor}), collapses for near-combs $1010\cdots10$. The decisive quantity is the size surplus of Observation~\ref{obs:decomp}, not a count: at a tight instance the \emph{provable} count-based lower bound $\lceil\omega/2\rceil\approx\tfrac12 s_{n-2}$ on the count floor is too small to close the gap with $s_{n-2}$, and the whole margin is carried by within-pair gaps of size $\ge 2$ at odd boundaries---an alignment depending on the full history, a quantity with no scalar recurrence (Proposition~\ref{prop:nu}). At $n=15$ this is concrete: $\lceil\omega(L_{15})/2\rceil=22{,}455<s_{13}=28{,}734$, so any argument bounding the count floor only from below by $\lceil\omega/2\rceil$ is dead on arrival, while the actual count floor $23{,}273$ together with the size surplus $5810$ exceeds $s_{13}$ by the margin $349$. The counter is a global parity functional, small only on configurations of a very particular shape; there is no scalar recurrence; and the integer orbit grows doubly exponentially, so finite verification cannot substitute for a uniform argument. Crucially, this residual inequality is a property of $F$ near fragile bodies, not of any seed: across every non-halting seed within reach, the even-parity step with an odd-parity predecessor eventually occurs (the all-odd escape hatch being unrealized), and that is exactly where the argument fails.
+
+\begin{conjecture}[The wall, seed-independent form]\label{conj:wall}
+For every seed whose orbit is infinite, and every even-parity step $n$ whose predecessor is of odd parity, $s_n\ge s_{n-2}$.
+\end{conjecture}
+
+\section{Computational results}\label{sec:comp}
+Two independent implementations of Definition~\ref{def:F}---a bit-level simulator and a memory-frugal gap-vector engine (Appendix~\ref{app:alg})---agree on every common output: full strings through $n=12$, and the scalar quantities $s_n$ and $\nu(L_n)\bmod 2$ through $n=25$, with the gap engine cross-checked against Proposition~\ref{prop:nu}. They were validated against each other on all $8191$ seeds of length $\le 13$ with zero discrepancies. For the orbit of $10$ the record reaches $s_{26}=88{,}613{,}778$, corroborated by $\nu(L_{26})=222{,}569{,}758$; two-step monotonicity holds for all $3\le n\le 26$; and a run of six consecutive even-parity steps occurs ($n=21,\dots,26$) across which the counter nevertheless grows.
+
+\begin{table}[h]\centering
+\begin{tabular}{rrl|rrl}
+$n$ & $s_n$ & par.\ $\nu(L_n)$ & $n$ & $s_n$ & par.\ $\nu(L_n)$\\
+\hline
+0 & 3 & odd & 14 & 67\,339 & odd\\
+1 & 5 & odd & 15 & 29\,083 & even\\
+2 & 2 & even & 16 & 218\,336 & odd\\
+3 & 8 & even & 17 & 498\,138 & odd\\
+4 & 31 & odd & 18 & 1\,332\,397 & odd\\
+5 & 66 & odd & 19 & 659\,539 & even\\
+6 & 158 & odd & 20 & 4\,146\,749 & odd\\
+7 & 392 & odd & 21 & 3\,732\,091 & even\\
+8 & 938 & odd & 22 & 8\,693\,523 & even\\
+9 & 2\,305 & odd & 23 & 18\,136\,691 & even\\
+10 & 1\,277 & even & 24 & 24\,703\,847 & even\\
+11 & 4\,885 & even & 25 & 55\,831\,137 & even\\
+12 & 9\,361 & even & 26 & 88\,613\,778 & even\\
+13 & 28\,734 & odd & & &
+\end{tabular}
+\caption{The counter $s_n$ and parity of $\nu(L_n)$ for the distinguished seed $L_0=10$, $0\le n\le 26$.}
+\label{tab:traj}
+\end{table}
+
+\begin{table}[h]\centering
+\begin{tabular}{lr}
+quantity & value\\
+\hline
+seeds of length $\le 14$ (beginning with $1$) & $16383$\\
+halting / non-halting (presumed) & $4859$ ($29.7\%$) / $11524$\\
+halt at step $0$ / $1$\,; max halt step observed & $1917$ / $2146$\,; $9$\\
+counter at halt $=0$ / $=1$ & $1464$ / $3395$\\
+first halts ($N\ge 2$) violating $s_{N-2}\le 5$ & $0$ of $796$\\
+non-halting (len $\le 11$) violating two-step monotonicity & $\ge 586$ of $1136$ (depth-dependent)$^*$\\
+non-halting (len $\le 11$) with $g(L_0)\ge 1$ & $217$ of $1136$\\
+\end{tabular}
+\caption{Classification of short seeds and structural statistics.\\
+$^*${\small The count of monotonicity-violators is non-decreasing as the simulation depth grows. The figure $586$ is the count within $80$ simulation steps per seed; within $150$ steps the count is $\ge 659$.}}
+\label{tab:stats}
+\end{table}
+
+\begin{table}[h]\centering
+\begin{tabular}{l|cccccccccccccc}
+$\ell$ & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 10 & 11 & 12 & 13 & 14\\
+halt frac. & 1.00 & .50 & 1.00 & .75 & .69 & .69 & .61 & .57 & .50 & .44 & .39 & .34 & .29 & .25
+\end{tabular}
+\caption{Halting fraction by seed length $\ell$ (seeds beginning with $1$).}
+\label{tab:bylength}
+\end{table}
+
+\section{Status}\label{sec:status}
+\subsubsection*{Proved} $F$ strictly lengthens and outputs end in $0$ (Lemmas~\ref{lem:length},~\ref{lem:end0}); $F$ has no cycles and every orbit is a halt-or-diverge simple path (Theorem~\ref{thm:nocycles}); odd parity forces survival and doubling (Lemma~\ref{lem:odd}); the counter formula and halting dichotomy (Proposition~\ref{prop:counter}, Corollary~\ref{cor:halting}); the reshaping identities (\S\ref{sec:struct}); the step-$0$ halt characterization (Proposition~\ref{prop:step0}); the prefix-alternation invariant with seed-controlled parity (Proposition~\ref{prop:prefix}) and the all-even exclusion (Proposition~\ref{prop:alleven}, Remarks~\ref{rem:rem18},~\ref{rem:TM}); the first-halt bound $s_{N-2}\le 5$ (Proposition~\ref{prop:firsthalt}); the even-step floor (Theorem~\ref{thm:floor}); the counter-inert tail and body localization (Lemma~\ref{lem:inert}, Observation~\ref{obs:decomp}); the $\nu$-recurrence (Proposition~\ref{prop:nu}); the conjugacies (\S\ref{sec:equiv}); invertibility and the first-halt shape (Propositions~\ref{prop:inv},~\ref{prop:halt-shape}, Remark~\ref{rem:rem31}).
+
+\subsubsection*{Reduced} For a seed that excludes the all-even profile, non-halting is equivalent to $(s_n)$ never re-entering $\{2,3,4,5\}$ after its finite transient, for which two-step monotonicity is sufficient (Corollary~\ref{cor:remaining}). Monotonicity is settled at odd steps (doubling) and at even-after-even steps (Theorem~\ref{thm:floor}); the residue is the even-after-odd step (Conjecture~\ref{conj:wall}), localized further onto the alignment-filtered size surplus (Observation~\ref{obs:decomp}).
+
+\subsubsection*{Open} Conjecture~\ref{conj:wall} (hence Theorem~\ref{thm:central}) for any non-halting seed, including $10$; the wall is intrinsic to $F$, every infinite orbit meets it, and the generic seed grazes the threshold repeatedly, making it harder than $10$ rather than easier.
+
+\section{Conjectures}\label{sec:conj}
+\begin{conjecture}[General non-halting reduction]\label{conj:reduction}
+A seed is non-halting iff no iterate of its orbit wears a fragile profile ($s_n\ge 2$ for all $n$); Conjecture~\ref{conj:wall} is a clean sufficient condition that the counter not re-enter $\{2,3,4,5\}$ after a finite transient.
+\end{conjecture}
+
+\begin{conjecture}[No eventually all-odd orbit]\label{conj:noallodd}
+No seed has an orbit that is eventually of all-odd parity; equivalently, every infinite orbit has infinitely many even-parity steps.
+\end{conjecture}
+
+\begin{conjecture}[Unbounded graze multiplicity]\label{conj:graze}
+$\sup_{L_0\in\mathcal H^c} g(L_0)=\infty$.
+\end{conjecture}
+
+\begin{conjecture}[Global injectivity]\label{conj:inj}
+$F$ is injective on the strings beginning with $1$ and ending with $0$.
+\end{conjecture}
+
+\begin{conjecture}[Vanishing halting density]\label{conj:density}
+$|\mathcal H_\ell|/2^{\ell-1}\to 0$ as $\ell\to\infty$, where $\mathcal H_\ell$ are the halting seeds of length $\ell$.
+\end{conjecture}
+
+\section{Open questions}\label{sec:open}
+\begin{question}[Decidability of halting]\label{q:dec}
+Is $\mathcal H$ decidable? It is recursively enumerable; orbit-membership is decidable (Proposition~\ref{prop:inv}). Is non-halting recognizable via a computable certificate derived from Conjecture~\ref{conj:wall}, or via FAR-type automata as in Remark~\ref{rem:TM} applied uniformly?
+\end{question}
+
+\begin{question}[A provably non-halting seed]\label{q:provable}
+Is there a seed with an eventually all-odd orbit, hence provably non-halting? If none (Conjecture~\ref{conj:noallodd}), what obstructs the parity dynamics of Proposition~\ref{prop:nu} from sustaining odd parity, given that $s_n\bmod 2$ has no scalar recurrence?
+\end{question}
+
+\begin{question}[Density and language complexity of $\mathcal H$]\label{q:density}
+Does $|\mathcal H_\ell|/2^{\ell-1}$ converge, and to what (the observed fractions decrease past $\ell=3$, Table~\ref{tab:bylength})? Is $\mathcal H$ regular, context-free, or context-sensitive? The step-$0$ halts are regular; the later halts are not obviously so.
+\end{question}
+
+\begin{question}[Uniform descent]\label{q:descent}
+Is there a Lyapunov function on the computable data, valid for all seeds, that survives the threshold grazes of Observation~\ref{obs:graze}? None was found for the orbit of $10$, and the repeated grazes make the general task strictly harder.
+\end{question}
+
+\begin{question}[Arithmetic of the conjugate]\label{q:arith}
+Can the map $T$ of Proposition~\ref{prop:T} and its alternating bit-sum kernel $2S$ (Lemma~\ref{lem:S}) be analysed intrinsically on $\mathbb Z^+$, by analytic or $2$-adic methods?
+\end{question}
+
+\begin{question}[The Turing-machine bridge]\label{q:TM}
+The all-even exclusion on the orbit of $10$ is certified by FAR (Remark~\ref{rem:TM}). Can the $s=1$ profile---the genuine residue---be encoded as a Turing machine whose non-halting is provable by FAR or a related decider, and if so, would such a certificate be uniform over seeds? A negative answer would locate the difficulty precisely at the boundary of automatic methods.
+\end{question}
+
+\appendix
+\section{Algorithms}\label{app:alg}
+The bit engine is a literal transcription of Definition~\ref{def:F} on a character array; it is ground truth while the string fits in memory. The gap engine represents a string by the gaps $(e;t)$ between consecutive $1$'s and the trailing-zero count $t$, advancing in time and space $O(\#\text{runs})$. Three points are essential to a faithful gap engine: the additive seed $s_{\mathrm{init}}=-1$ of the odd pad; the trailing-zero count $t'=t+3$ at the unique $s=2$ even step; and the gap from the body's last $1$ into the appended tail, which equals (body trailing zeros)$+1$, with body trailing zeros $t+3$ after an even pad and $1$ after an odd pad. With these handled, the two engines agree on every common output.
+
+\section{Computational evidence}\label{app:evidence}
+For the orbit of $10$, the counter sequence $s_0,\dots,s_{26}$ is
+\[ 3,5,2,8,31,66,158,392,938,2305,1277,4885,9361,28734,67339,29083,\]\[218336,498138,1332397,659539,4146749,3732091,8693523,18136691,24703847,55831137,88613778, \]
+with parity string of $\nu(L_n)$
+\[ \mathrm{o\ o\ E\ E\ o\ o\ o\ o\ o\ o\ E\ E\ E\ o\ o\ E\ o\ o\ o\ E\ o\ E\ E\ E\ E\ E\ E}, \]
+reproduced exactly by the $\nu$-recurrence (Proposition~\ref{prop:nu}) iterated from $\nu(L_0)=1$, which also predicts $\nu(L_{26})=222{,}569{,}758$. The odd-run counts $\omega(L_n)$ for $0\le n\le 15$ are $1,1,4,6,1,11,47,105,235,589,1420,3704,1960,7549,13983,44910$; the small values occur only at odd-parity iterates, where survival is guaranteed by Lemma~\ref{lem:odd}. The backward decision procedure confirms that all $4565$ halting strings of length $\le 14$ are absent from the orbit of $10$. For general seeds, the statistics of Tables~\ref{tab:stats}--\ref{tab:bylength} were obtained from the same engines; the first-halt counterexample to predecessor pinning is $L_0=110011111110$ ($N=8$, $s_{N-1}=102$, $s_N=1$), and the all-even output counterexample is $F(1)=11110$.
+
+\begin{table}[h]\centering
+\begin{tabular}{rrrr|l}
+$n$ & $s_n$ & body $\Sigma$ & tail $\Sigma$ & nonzero contributing-gap multiset\\
+\hline
+10 & 1\,277 & 1\,277 & 0 & $\{1:551,\,2:230,\,3:87,\,5:1\}$\\
+15 & 29\,083 & 29\,083 & 0 & $\{1:17\,594,\,2:5613,\,3:1,\,4:65\}$\\
+19 & 659\,539 & 659\,539 & 0 & $\{1:273\,509,\,2:147\,958,\,3:17\,266,\,4:7769,\,5:810,\,10:319\}$
+\end{tabular}
+\caption{Body/tail decomposition of the counter at the open (odd-predecessor) even steps. The tail $\Sigma$ is identically $0$ (Lemma~\ref{lem:inert}). For $n=15$ the count floor (total multiplicity) is $23{,}273$, the bound $\lceil\omega/2\rceil=22{,}455$, and the size surplus $5613\cdot 1+1\cdot 2+65\cdot 3=5810$, so $s_{15}=23{,}273+5810=29{,}083$.}
+\label{tab:decomp}
+\end{table}
+
+\section{Computational programs}\label{app:programs}
+The two implementations of Definition~\ref{def:F}---the bit-level simulator and the gap-vector engine of Appendix~\ref{app:alg}---together with the verification and statistics-gathering scripts, are available at
+\begin{center}
+\url{https://github.com/RobinCodes/Projects/tree/main/Collatz-type%20problem/Collatz-type%20problem%20v6}.
+\end{center}
+
+\section{Note on the use of artificial intelligence}\label{app:ai}
+This work was prepared with substantial assistance from an artificial-intelligence system, and most of the results presented here were created with such assistance: the map of Definition~\ref{def:F} was implemented in two independent ways (Appendix~\ref{app:alg}) and cross-validated on every commonly feasible output, the computational record was extended, and the structural results were formulated and proved with machine assistance. An independent re-derivation, working only from the statements of this paper, reconstructed the map from scratch, re-implemented it in two further engines (a literal bit-level engine and a numpy gap-vector engine), and reproduced every computational and structural claim, including: the counter sequence and parity through $n=26$ with $s_{26}=88{,}613{,}778$ and $\nu(L_{26})=222{,}569{,}758$; the integer-conjugate values $N_0,\dots,N_3=2,998,45\,868\,646,213\,192\,976$ and the conjugacy $T(N_n)=N_{n+1}$ through $n=7$; the structural lemmas of \S\S\ref{sec:rl}--\ref{sec:struct}--\ref{sec:step0} by brute force on all strings of length $\le 12$ beginning with $1$, with zero violations; the body/tail decomposition multisets of Table~\ref{tab:decomp}; the general-seed statistics of Tables~\ref{tab:stats}--\ref{tab:bylength}; and the count-floor identification of Observation~\ref{obs:decomp}, including the depth-dependent monotonicity-violation figure of Observation~\ref{obs:mono} and Table~\ref{tab:stats}. This re-derivation reached the same conclusion regarding the central inequality---that it lies beyond elementary methods.
+
+We do not specify the particular artificial-intelligence system or systems used; readers seeking further detail about the methods are invited to contact the authors: Robin Rovenszky (\texttt{robincodes} on Discord) and notxxdog (\texttt{.notxxdog} on Discord).
+
+The Turing-machine encoding of Remark~\ref{rem:TM} and its Finite Automata Reduction certificate are due to the authors and the Busy Beaver Challenge collaboration \cite{bbc}; the simulation check reported there ($10^7$ steps without halting) was reproduced independently. The equivalence between the machine's halting and the $s=0$ event is, by construction, an assertion about the encoding; the FAR certificate is the formal object of record.
+
+No result here is accepted on the basis of machine assertion. Every definition, lemma, and proof is stated so as to be checkable by hand, and every computational claim is reproducible by re-running the procedures of Appendix~\ref{app:alg} and the programs of Appendix~\ref{app:programs}. The status of the central open inequality (Conjecture~\ref{conj:wall}) is reported exactly as it stands.
+
+\begin{thebibliography}{9}
+\bibitem{bbc} The Busy Beaver Challenge, \emph{The determination of $BB(5)$ and non-halting deciders, including Finite Automata Reduction}, \url{https://bbchallenge.org}.
+\end{thebibliography}
+
+\end{document}

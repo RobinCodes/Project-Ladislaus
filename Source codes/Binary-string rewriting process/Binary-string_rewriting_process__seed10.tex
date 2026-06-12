@@ -1,0 +1,564 @@
+\documentclass[11pt,reqno]{amsart}
+\usepackage{lmodern}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amssymb,amsmath,amsthm,mathtools}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{float}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage[margin=1in]{geometry}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{thm}[theorem]{Theorem}
+\newtheorem{proposition}{Proposition}
+\newtheorem{lemma}{Lemma}
+\newtheorem{corollary}{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\newtheorem{example}{Example}
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+\newtheorem{observation}{Observation}
+\newtheorem{conjecture}{Conjecture}
+\newtheorem{question}{Question}
+
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\F}{\mathbb{F}}
+\newcommand{\ord}{\operatorname{ord}}
+\DeclareMathOperator{\lcm}{lcm}
+\newcommand{\gen}[1]{\langle #1 \rangle}
+\newcommand{\dvd}{\mid}
+\newcommand{\Sa}{S_a}
+\newcommand{\half}{\tfrac12}
+\DeclareMathOperator{\popcount}{w}
+
+\title[An iterated binary-string rewriting process]{On an iterated binary-string rewriting process}
+\author{Robin Rovenszky}
+\author{notxxdog}
+\date{May 26, 2026}
+\subjclass[2020]{Primary 11B85, 68R15; Secondary 37B10, 11B37}
+\keywords{Symbolic dynamics, binary strings, rewriting systems, halting problem, Collatz-type iteration, alternating bit-sum}
+\thanks{Prepared with substantial assistance from an artificial-intelligence system; see Appendix~\ref{app:ai}. Author contacts: Robin Rovenszky (\texttt{robincodes} on Discord) and notxxdog (\texttt{.notxxdog} on Discord).}
+
+\begin{document}
+\begin{abstract}
+We study a deterministic rewriting process $F$ on finite binary strings that carries an integer counter $s$ and halts precisely when $s$ falls below $2$; the central question is whether the trajectory generated from the seed $L_0=10$ is infinite.  We reduce this question to a scalar inequality on the counter sequence $(s_n)$ and analyse it from several directions.  The halting value $s=0$ is excluded unconditionally at every even index by an exact prefix invariant $(r_1(L_n)=1\iff n\text{ even})$, and at odd indices under the mild bound $s_{n-2}\ge 4$.  We prove the two-step monotonicity $s_n\ge s_{n-2}$ at every even-parity step whose predecessor is also of even parity, via an even-step floor $s_n\ge 3\lfloor(s_{n-2}-3)/2\rfloor$, and we give an exact recurrence for the $1$-count $\nu(L_n)$ that fixes the parity sequence in closed form.  A counter-inert tail lemma yields an exact decomposition of the even-step counter into a count term and an alignment-filtered size surplus, and shows that the count alone provably cannot close the residual gap.  The map is recast as a faithful integer conjugate of Collatz type, as a gap-vector rewrite, and as a scalar process with no closed recurrence.  Two independent from-scratch engines yield the counter through $s_{26}=88\,613\,778$ and the parity through $\nu(L_{26})=222\,569\,758$, confirm two-step monotonicity throughout $3\le n\le 26$, and localize the single remaining obstruction to even-parity steps with odd-parity predecessors.  A dedicated section explains, with the forward and backward routes side by side, why the residual inequality resists elementary methods.  The central theorem and the full monotonicity conjecture remain open.
+\end{abstract}
+
+\maketitle
+\tableofcontents
+
+\section{Introduction}
+The process studied here is easy to define and stubbornly resistant to complete analysis. One iterates a fixed rewriting rule on binary strings; the rule carries a small integer counter and is engineered to stop the iteration the instant that counter drops below the threshold~$2$. From the seed $L_0=10$ the iteration appears to run forever, with the counter exploding to infinity after a single, isolated brush with the threshold. Proving that it truly never stops is the problem.
+
+The architecture of the analysis is the following: modulo one structural fact---that a particular halting value never occurs on the orbit of $10$---the whole question is equivalent to a single inequality about the size of the counter, driven by a transparent geometric mechanism. We establish that structural fact, prove the governing inequality in a structurally identified sub-case, push the computational frontier outward, and pin down sharply the one configuration on which a complete proof still founders.
+
+\subsection*{Conventions} Strings are finite words over $\{0,1\}$; positions are numbered $1,2,3,\dots$ from the left. For $w\in\{0,1\}^*$ we write $\nu(w)$ for the number of $1$'s and $\omega(w)$ for the number of odd-length maximal runs of $1$'s. Concatenation is denoted by juxtaposition or a dot, and $u^k$ is the $k$-fold concatenation of $u$. We call a string \emph{even} (resp.\ \emph{odd}) when $\nu$ is even (resp.\ odd); this ``parity'' refers to $\nu$, not to the index $n$ (Table~\ref{tab:traj}).
+
+\begin{definition}[The map $F$]\label{def:F}
+For $L\in\{0,1\}^*$, the value $F(L)$, when defined, is computed in three steps.
+
+\emph{Step 1 (pad; seed the counter).} Let $k=\nu(L)$. If $k$ is even, append $00$ to $L$ and set $s:=0$; if $k$ is odd, append $0001$ to $L$ and set $s:=-1$. Call the result $L^{(1)}$; note $\nu(L^{(1)})$ is even.
+
+\emph{Step 2 (pair the $1$'s; fill and count).} Let $p_1<\dots<p_{2m}$ be the positions of the $1$'s in $L^{(1)}$, grouped into consecutive pairs $(p_1,p_2),\dots,(p_{2m-1},p_{2m})$. For $j=1,\dots,m$ in turn: set positions $p_{2j-1},\dots,p_{2j}-1$ to $1$; set position $p_{2j}$ to $0$; and add $p_{2j}-p_{2j-1}-1$ to $s$. Call the result $L^{(2)}$.
+
+\emph{Step 3 (halt or extend).} If $s<2$, the process halts and $F(L)$ is undefined. Otherwise $F(L):=L^{(2)}\cdot(0110)^{s-2}$.
+\end{definition}
+
+Informally, Step 2 takes the $1$'s two at a time, fills the gap between each pair into a solid block of $1$'s, deletes the block's right endpoint, and tallies the filled gap; the counter $s$ is the total filling. Step 1 makes the count of $1$'s even so that the pairing is exhaustive, and Step 3 reads the total filling and, when there was enough, glues on a tail whose length grows with $s$.
+
+\begin{definition}[Trajectory]\label{def:traj}
+Set $L_0:=10$ and $L_{n+1}:=F(L_n)$ whenever the right-hand side is defined. Write $s_n$ for the counter computed during $F(L_n)$.
+\end{definition}
+
+\begin{thm}[Non-halting; the central claim, open]\label{thm:central}
+$L_n$ is defined for every $n\ge 0$; equivalently, $s_n\ge 2$ for all $n$.
+\end{thm}
+
+Theorem~\ref{thm:central} is not proved here, and we believe it is not within reach of elementary methods. What we provide is a reduction to a single scalar inequality and a sharply delimited residual obstruction; \S\ref{sec:status} states the status with precision.
+
+\subsection{Summary of results} The main results are the following.
+\begin{enumerate}[label=(\roman*)]
+\item A prefix-alternation lemma (Lemma~\ref{lem:prefix}): $r_1(L_n)=1\iff n$ even, where $r_1$ is the length of the first maximal $1$-run.
+\item Exclusion of the all-even halting profile $s_n=0$ (Proposition~\ref{prop:alleven}): unconditionally at every even index and, at odd indices, whenever $s_{n-2}\ge 4$.
+\item An even-step floor and a proven sub-case of two-step monotonicity (Theorem~\ref{thm:floor}): $s_n\ge 3\lfloor(s_{n-2}-3)/2\rfloor$, whence $s_n\ge s_{n-2}$ once $s_{n-2}\ge 12$.
+\item An exact recurrence for $\nu(L_n)$ (Proposition~\ref{prop:nu}) which closes the parity dynamics.
+\item A counter-inert tail lemma (Lemma~\ref{lem:inert}) and an exact body localization of the even-step counter (Observation~\ref{obs:decomp}): $s_n$ is a functional of the body $L^{(2)}_{n-1}$ alone, and decomposes as a count term plus an alignment-filtered size surplus.
+\item Three exact reformulations (\S\ref{sec:equiv}): a faithful integer conjugate $T$ (Theorem~\ref{thm:T}) built on the identity that Step~2 is the doubled alternating bit-sum (Lemma~\ref{lem:S}); a natural-scale gap-vector conjugate (Proposition~\ref{prop:gap}); and the scalar-counter form (Proposition~\ref{prop:scalar}).
+\item An extended, independently cross-validated computation. The record reaches $s_{26}=88\,613\,778$, corroborated by $\nu(L_{26})=222\,569\,758$; two-step monotonicity $s_n\ge s_{n-2}$ holds for $3\le n\le 26$; a run of six consecutive even-parity steps occurs across which the counter nevertheless grows; the open obstruction is localized to even steps with odd-parity predecessors (\S\ref{sec:12.1}).
+\item A discussion (\S\ref{sec:resist}) of why the problem resists elementary methods, placing the forward and backward routes side by side.
+\end{enumerate}
+
+\section{Elementary structure and the worked trajectory}\label{sec:elem}
+Running the rule once by hand fixes ideas. From $L_0=10$ the single $1$ makes $k=1$ odd, so Step 1 appends $0001$ and sets $s=-1$, giving $L^{(1)}=100001$. The $1$'s lie at positions $1$ and $6$; filling positions $1$--$5$ and zeroing position $6$ yields $111110$, and the filled gap is $4$, so $s=3$. As $3\ge 2$ we append $(0110)^1$ and read off $L_1=1111100110$. Continuing,
+\begin{align*}
+L_2 &= 10101110111110011001100110,\\
+L_3 &= 1100101101010001000100010000,\\
+L_4 &= 100011011001111000011110000000011001100110011001100110,
+\end{align*}
+and the counter takes the values $3,5,2,8,31,66,158,\dots$ (Table~\ref{tab:traj}).
+
+Two features organize everything. First, the sequence is \emph{explosive}: from $s_3$ onward it roughly multiplies each step, and $|L_n|$ exceeds $10^8$ before $n=22$. Second, it \emph{grazes the threshold exactly once}: $s_2=2$, with no margin. Any proof must survive that single near miss at $n=2$ and then explain why it never recurs.
+
+\begin{lemma}[$F$ strictly lengthens]\label{lem:length}
+Whenever $F(L)$ is defined, $|F(L)|\ge|L|+2$.
+\end{lemma}
+\begin{proof}
+Step 1 appends two or four symbols; Step 2 preserves length; Step 3 appends $4(s-2)\ge 0$ symbols.
+\end{proof}
+
+A first consequence, central to the backward viewpoint (\S\ref{sec:backward}): every string has only finitely many iterated preimages under $F$, since a preimage is strictly shorter; orbit membership is decidable.
+
+\begin{lemma}[Outputs end in $0$]\label{lem:end0}
+Whenever $F(L)$ is defined, its last symbol is $0$.
+\end{lemma}
+\begin{proof}
+Step 2 sets the position $p_{2m}$ of the last $1$ of $L^{(1)}$ to $0$; no later position holds a $1$, so $L^{(2)}$ ends in $0$. If $s=2$ then $F(L)=L^{(2)}$; if $s>2$ then $F(L)$ ends in the final $0$ of the last appended block $0110$.
+\end{proof}
+
+\section{Odd parity forces survival}\label{sec:odd}
+\begin{lemma}[Odd-parity lemma]\label{lem:odd}
+If $\nu(L)$ is odd, then the counter computed during $F(L)$ satisfies $s\ge 2$.
+\end{lemma}
+\begin{proof}
+Write $k=\nu(L)$ odd, $b\ge 0$ the number of trailing $0$'s of $L$, so $L=L_f\cdot 1\cdot 0^b$. Step 1 appends $0001$, producing $L^{(1)}=L_f\cdot 1\cdot 0^{b+3}\cdot 1$. Now $\nu(L^{(1)})=k+1$ is even, and the final two $1$'s of $L^{(1)}$ are separated by exactly $b+3$ zeros, so the last pair contributes $b+3\ge 3$. Every pair contributes $\ge 0$ and $s$ began at $-1$, whence $s\ge -1+(b+3)\ge 2$.
+\end{proof}
+
+From here on only even-parity strings can halt. With $s$ starting at $0$,
+\begin{equation}\label{eq:sumeven}
+s=\sum_{j=1}^{m}(p_{2j}-p_{2j-1}-1)\qquad(\nu(L)\text{ even}),
+\end{equation}
+a sum of nonnegative within-pair gaps. Nothing forbids $s\in\{0,1\}$; locating those occurrences is the next task.
+
+\section{The run-length calculus}\label{sec:rl}
+Write the run-length encoding of $L$ (with $\nu(L)\ge 1$) as
+\begin{equation}\label{eq:rle}
+L=0^{c_0}1^{r_1}0^{c_1}1^{r_2}0^{c_2}\cdots 1^{r_R}0^{c_R},
+\end{equation}
+with $R\ge 1$, each $r_i\ge 1$, each internal $c_i\ge 1$. Put $C_i=r_1+\cdots+r_i$, so $C_0=0$ and $C_R=\nu(L)$.
+
+\begin{proposition}[Counter formula]\label{prop:counter}
+If $\nu(L)$ is even, the counter computed during $F(L)$ is
+\begin{equation}\label{eq:counter}
+s=\sum_{\substack{1\le i\le R-1\\C_i\ \text{odd}}}c_i.
+\end{equation}
+\end{proposition}
+\begin{proof}
+Step 1 adds no $1$'s, so \eqref{eq:sumeven} applies. Number the $1$'s $1,\dots,N$; Step 2 pairs them $\{1,2\},\{3,4\},\dots$, and each pair contributes the number of $0$'s between its two $1$'s. The boundary between run $i$ and run $i+1$ is spanned by a pair iff $C_i$ is odd, contributing $c_i$; same-run pairs contribute $0$. Summing gives~\eqref{eq:counter}.
+\end{proof}
+
+\begin{corollary}[Halting dichotomy]\label{cor:halting}
+Let $\nu(L)$ be even. Then $F(L)$ halts iff exactly one of: (i) every run length is even ($s=0$, equivalently $\omega(L)=0$); or (ii) the run lengths contain exactly two odd values at consecutive positions $j_0,j_0+1$, with $c_{j_0}=1$ ($s=1$).
+\end{corollary}
+\begin{proof}
+By~\eqref{eq:counter} and $c_i\ge 1$ internally, $s$ counts internal indices with $C_i$ odd, weighted by $c_i$. The parity sequence $C_0,\dots,C_R$ starts and ends even and toggles at odd-length runs; the two stated profiles are exactly $s=0$ and $s=1$.
+\end{proof}
+
+Combined with Lemma~\ref{lem:odd}, the dichotomy reduces Theorem~\ref{thm:central} to a statement about shape.
+
+\section{Structural lemmas}\label{sec:struct}
+Fix $L$, let $\Lambda=L\cdot(00\text{ or }0001)$, and let the consecutive pairs of $1$'s in $\Lambda$ have within-pair gaps $g_j\ge 0$ for $j=1,\dots,m=\tfrac12\nu(\Lambda)$. Write $C_i,\gamma_i$ for the cumulative $1$-counts and internal $0$-runs of $\Lambda$, and set $X(L)=\#\{i:C_i\text{ odd and }\gamma_i\text{ odd}\}$.
+
+\begin{lemma}[Reshaping]\label{lem:reshape}
+The image $L^{(2)}$ has exactly $m$ runs of $1$'s, the $j$-th of length $g_j+1$; hence $F(L)$ has $1$-runs $g_1+1,\dots,g_m+1$ followed by $s-2$ runs of length $2$. A body run is odd iff its pair has even gap; the appended tail contributes only even-length runs.
+\end{lemma}
+\begin{proof}
+Pair $j$ sets $p_{2j-1},\dots,p_{2j}-1$ to $1$ (a block of length $g_j+1$) and zeros $p_{2j}$; distinct blocks are separated by the zeroed position. Each factor $0110$ contributes one run $11$ of length $2$. Finally $g_j+1$ is odd iff $g_j$ is even.
+\end{proof}
+
+\begin{lemma}[Reshaping count]\label{lem:reshapecount}
+For every $L$, $\omega(F(L))=m-X(L)$.
+\end{lemma}
+
+\begin{lemma}[Odd-run floor from intra-run pairs]\label{lem:oddrunfloor}
+With $\mu$ the number of pairs both of whose $1$'s lie in a single $1$-run of $\Lambda$ and $R'$ the number of $1$-runs of $\Lambda$, $F(L)$ has at least $\mu$ odd-length $1$-runs, and $\mu\ge m-(R'-1)$.
+\end{lemma}
+
+\begin{lemma}[The tail manufactures odd runs]\label{lem:tailodd}
+If $L=W\cdot(0110)^u$ with $u\ge 1$ and $W$ ending in $0$, then $\omega(F(L))\ge u-\varepsilon$, where $\varepsilon=0$ if $\nu(L)$ even and $\varepsilon=1$ if $\nu(L)$ odd.
+\end{lemma}
+
+\begin{lemma}[Counter floor]\label{lem:cfloor}
+If $\nu(L)$ is even, then $s(F(L))\ge\lceil\omega(L)/2\rceil$.
+\end{lemma}
+
+\begin{lemma}[Growth]\label{lem:growth}
+If $L=W\cdot(0110)^u$ with $u\ge 1$, $W$ ending in $0$, and $\nu(L)$ odd, then $s(F(L))\ge 2u+2$.
+\end{lemma}
+
+Proofs of Lemmas~\ref{lem:reshapecount}--\ref{lem:growth} are the pairing analysis of \S\ref{sec:rl} applied run by run; they are routine and we omit them, having verified each against the engines of Appendix~\ref{app:alg}.
+
+\section{Prefix dynamics and the all-even profile}\label{sec:prefix}
+We now address the first fragile profile, $s_n=0$. By Corollary~\ref{cor:halting} this is exactly $\omega(L_n)=0$. We exclude it unconditionally at even indices and reduce it to a weak counter bound at odd indices.
+
+For a string $L$ with $\nu(L)\ge 1$, let $r_1(L)$ denote the length of its first maximal $1$-run, and (when $L$ has at least two $1$-runs) $c_1(L)$ the length of its first internal $0$-run.
+
+\begin{lemma}[Prefix alternation]\label{lem:prefix}
+For all $n\ge 0$,
+\[ r_1(L_{n+1})=\begin{cases}1,& r_1(L_n)\ge 2,\\ c_1(L_n)+1\ (\ge 2),& r_1(L_n)=1.\end{cases} \]
+Since $r_1(L_0)=1$, it follows that $r_1(L_n)=1\iff n$ even.
+\end{lemma}
+\begin{proof}
+By Lemma~\ref{lem:reshape}, the first $1$-run of $L_{n+1}=F(L_n)$ has length $g_1+1$, where $g_1$ is the within-pair gap of the first pair of $\Lambda_n=L_n\cdot(\mathrm{pad})$. The pad is appended at the right, so the first $1$-run of $\Lambda_n$ equals $r_1(L_n)$. If $r_1(L_n)\ge 2$ the first two $1$'s are adjacent, $g_1=0$ and $r_1(L_{n+1})=1$. If $r_1(L_n)=1$ and $L_n$ has at least two $1$-runs, the first pair straddles the first boundary, giving $g_1=c_1(L_n)$ and $r_1(L_{n+1})=c_1(L_n)+1\ge 2$. (If $L_n$ has a single $1$-run, then $\nu(L_n)=1$ is odd; Step 1 appends $0001$, creating a second $1$-run at gap $\ge 3$, so again $r_1(L_{n+1})\ge 2$.) With $a_n:=[\,r_1(L_n)\ge 2\,]$, $a_{n+1}=\lnot a_n$ and $r_1(L_0)=1$ give the closed form.
+\end{proof}
+
+\begin{proposition}[All-even profile excluded]\label{prop:alleven}
+Recall $s_n=0\iff\omega(L_n)=0$.
+\begin{enumerate}[label=(\alph*)]
+\item For every even $n$, $L_n$ begins with a $1$-run of length $1$; hence $\omega(L_n)\ge 1$ and $s_n\ne 0$. This is unconditional.
+\item For every odd $n$: if $\nu(L_n)$ is odd then $s_n\ge 2$ by Lemma~\ref{lem:odd}; if $\nu(L_n)$ is even and $s_{n-2}\ge 4$, then $\omega(L_n)\ge 1$, so $s_n\ne 0$.
+\end{enumerate}
+\end{proposition}
+\begin{proof}
+(a) By Lemma~\ref{lem:prefix}, $r_1(L_n)=1$ for even $n$, so $\omega(L_n)\ge 1$ and $s_n\ne 0$ by Corollary~\ref{cor:halting}. (b) The odd-$\nu$ sub-case is Lemma~\ref{lem:odd}. For the even-$\nu$ sub-case, $L_{n-1}=L^{(2)}_{n-2}\cdot(0110)^u$ with $u=s_{n-2}-2$ and $L^{(2)}_{n-2}$ ending in $0$. If $s_{n-2}\ge 4$ then $u\ge 2$, and Lemma~\ref{lem:tailodd} gives $\omega(L_n)\ge u-1\ge 1$.
+\end{proof}
+
+\begin{remark}\label{rem:rem17}
+The asymmetry is genuine: at an odd index with $\nu(L_n)$ even, the leading run can be even (Lemma~\ref{lem:prefix} gives $r_1=c_1+1$, of unconstrained parity), so part~(a)'s direct argument does not transfer, and one falls back on the tail count of part~(b). On the actual trajectory $s_{n-2}\ge 4$ holds at every relevant step (Table~\ref{tab:traj}); the only index with $s_{n-2}<4$ is $n-2=2$ (where $s_2=2$), and $n=4$ has $\nu(L_4)$ odd, so the hypothesis of part~(b) is never invoked at a vulnerable step. Thus on the trajectory the all-even profile is excluded throughout.
+\end{remark}
+
+\begin{remark}[The all-even profile is reachable as an output]\label{rem:rem18}
+One might hope to prove the impossibility of $s_n=0$ through the backward range analysis, by arguing that every output of $F$ carries a $0$ strictly between its first and last $1$, so that no iterate is a single $1$-run $1^a0^b$ and the simplest all-even shape would be unreachable. \emph{This is not so.} The odd pad $0001$ places the (subsequently zeroed) last $1$ at the very end of $L^{(1)}$, leaving no internal $0$ in $L^{(2)}$; explicitly,
+\[ F(1)=11110=1^40\quad(\text{an output of }F,\ \omega=0),\qquad F(11110)=\text{halt with }s=0. \]
+Thus the all-even profile \emph{is} reachable as an output of $F$, and the exclusion of $s=0$ is a property of particular orbits, not of the range of $F$. The exclusion on the orbit of $10$ rests on Proposition~\ref{prop:alleven}, which uses only the prefix invariant (Lemma~\ref{lem:prefix}), together with the finite backward decision procedure of \S\ref{sec:backward}, which confirms independently that all $4565$ halting strings of length $\le 14$ are absent from the orbit of $10$; neither establishes unreachability of all-even profiles in general. (A second, formally independent certificate of the orbit-of-$10$ all-even exclusion is given in the companion seed-independent treatment by encoding the process as a $2$-state, $5$-symbol Turing machine and citing a Finite Automata Reduction non-halting certificate from the Busy Beaver Challenge; we do not reproduce it here.)
+\end{remark}
+
+For the remainder, ``halting'' may be read as ``$s_n=1$.''
+
+\begin{proposition}[Reduction to a single profile]\label{prop:single}
+The trajectory halts iff some $s_n=1$.
+\end{proposition}
+\begin{proof}
+Halting at step $n$ means $s_n\in\{0,1\}$; Proposition~\ref{prop:alleven} excludes $s_n=0$ on the trajectory.
+\end{proof}
+
+\section{The reduction to a scalar inequality}\label{sec:reduction}
+For $n\ge 1$ the iterate has the form $L_{n-1}=L^{(2)}_{n-1}\cdot(0110)^u$ with $u=s_{n-2}-2$ and $L^{(2)}_{n-1}$ ending in $0$ (Lemma~\ref{lem:reshape}).
+
+\begin{proposition}[Reduction]\label{prop:firsthalt}
+If the process halts and $N$ is the first index at which it does, then $s_{N-2}\le 5$.
+\end{proposition}
+\begin{proof}
+Since $N$ is the first halt, $s_{N-2}\ge 2$, so $u=s_{N-2}-2\ge 0$. If $u=0$ then $s_{N-2}=2\le 5$. If $u\ge 1$, apply Lemma~\ref{lem:tailodd} to $L_{N-1}=L^{(2)}_{N-1}\cdot(0110)^u$: $\omega(L_N)\ge u-1=s_{N-2}-3$. By Proposition~\ref{prop:single} the halt is $s_N=1$, so $\omega(L_N)=2$; hence $s_{N-2}-3\le 2$.
+\end{proof}
+
+\begin{corollary}[The remaining content of the theorem]\label{cor:remaining}
+The process never halts provided $s_n\ge 6$ for all $n\ge 3$; a fortiori it never halts if the two-step monotonicity $s_n\ge s_{n-2}$ holds for all $n\ge 3$.
+\end{corollary}
+\begin{proof}
+If first halt at $N$, Proposition~\ref{prop:firsthalt} gives $N-2\le 2$, i.e.\ $N\le 4$; but $s_0,\dots,s_4=3,5,2,8,31$ are all $\ge 2$. Monotonicity propagates $s_0,s_1,s_2$ on the two parity subsequences.
+\end{proof}
+
+Thus Theorem~\ref{thm:central} is equivalent to the scalar statement that the counter never returns to $\{2,3,4,5\}$ after the third step, for which two-step monotonicity is sufficient. The mechanism is explicit. At an odd-parity step, Lemma~\ref{lem:growth} gives
+\begin{equation}\label{eq:double}
+s_n\ge 2s_{n-1}-2\qquad(\nu(L_n)\text{ odd}),
+\end{equation}
+so odd steps at least double the counter. At an even-parity step, Lemmas~\ref{lem:cfloor} and~\ref{lem:tailodd} give
+\begin{equation}\label{eq:half}
+s_n\ge\lceil\omega(L_n)/2\rceil\ge\lceil(s_{n-2}-3)/2\rceil\qquad(\nu(L_n)\text{ even}),
+\end{equation}
+at most a near-halving. Estimate~\eqref{eq:half} alone does not yield $s_n\ge s_{n-2}$; a long run of consecutive even-parity steps could compound several near-halvings. The next conjecture asserts this never happens.
+
+\begin{conjecture}[Two-step monotonicity; open]\label{conj:mono}
+For all $n\ge 3$, $s_n\ge s_{n-2}$.
+\end{conjecture}
+
+\subsection{An improved even-step floor and a proven sub-case}\label{sec:7.1}
+We beat the factor $\tfrac12$ of~\eqref{eq:half} in a structurally identified case. The key is that when the predecessor step is of even parity, the tail it carries is reshaped into a regular comb of single $1$'s separated by $0$-gaps of length $3$.
+
+\begin{thm}[Even-step floor with even-parity predecessor]\label{thm:floor}
+Suppose step $n$ is of even parity, step $n-1$ is also of even parity, and $u:=s_{n-2}-2\ge 1$. Then the last $u$ body $1$-runs of $L_n$ all have length $1$ and are separated by internal $0$-runs of length exactly $3$, and consequently
+\begin{equation}\label{eq:floor}
+s_n\ge 3\Bigl\lfloor\tfrac{u-1}{2}\Bigr\rfloor\ge\tfrac32 s_{n-2}-6.
+\end{equation}
+In particular $s_n\ge s_{n-2}$ whenever $s_{n-2}\ge 12$, so Conjecture~\ref{conj:mono} holds at every even-parity step whose predecessor is of even parity, with finitely many small cases to check directly.
+\end{thm}
+\begin{proof}
+Write $L_{n-1}=Y\cdot(0110)^u$ with $Y=L^{(2)}_{n-2}$ ending in $0$, $u=s_{n-2}-2$. The tail carries $2u$ ones (even), and $\nu(L_{n-1})$ is even, so $\nu(Y)$ is even. Forming $L_n$: Step 1 appends $00$, the $\nu(Y)$ ones of $Y$ pair among themselves, and the $2u$ tail ones pair within the tail as $(1,2),(3,4),\dots$.
+
+The tail attached to $Y$ reads $0\underbrace{11\,00\,11\,00\cdots 00\,11}_{u\ \text{blocks}}0$. By Lemma~\ref{lem:reshape} each block becomes a $1$-run of length $1$, Step 2 zeros its right one, and between two consecutive blocks the symbols are the zeroed right one plus the separating $00$---three $0$'s. So the image of the tail region is $(1\,000)^{u-1}\,1$: $u$ single-$1$ runs separated by $u-1$ internal $0$-runs of length $3$, lying strictly inside $L_n$.
+
+Across these $u$ runs the cumulative count $C$ rises by $1$ per run, so the $u-1$ separators sit at $u-1$ consecutive values of $C$, at least $\lfloor(u-1)/2\rfloor$ of them odd, each contributing $c_i=3$ via~\eqref{eq:counter}. Hence $s_n\ge 3\lfloor(u-1)/2\rfloor\ge\tfrac32(u-2)=\tfrac32 s_{n-2}-6$, which is $\ge s_{n-2}$ iff $s_{n-2}\ge 12$. The only even-after-even step with $s_{n-2}<12$ on the trajectory is $n=3$, where $s_3=8\ge s_1=5$ holds directly.
+\end{proof}
+
+\begin{remark}\label{rem:floor-consistent}
+The bound~\eqref{eq:floor} is consistent with the data: at every even-after-even step ($n=3,11,12,22,23,24,25,26$) the observed ratios $s_n/s_{n-2}$ range from $1.60$ to $7.33$. The comb structure (last $u=s_{n-2}-2$ body $1$-runs of length $1$, separators of length $3$) was confirmed exactly at $n=3,11,12$. The complementary case---an even step whose predecessor is of odd parity---is exactly where the tight instances of Conjecture~\ref{conj:mono} occur; see \S\ref{sec:12.1}.
+\end{remark}
+
+\section{The counter-inert tail and body localization}\label{sec:inert}
+The even-step floor of \S\ref{sec:7.1} lower-bounds $s_n$ through $\omega(L_n)$. We now isolate a cleaner and exact statement which unifies the proved and the open cases. The principle is that the counter at an even step is a functional of the body alone: the freshly appended tail contributes nothing.
+
+\begin{lemma}[Counter-inert tail]\label{lem:inert}
+Let step $n$ be of even parity, and write $L_n=B\cdot T$ with $T=(0110)^{s_{n-1}-2}$ the tail appended in forming $L_n=F(L_{n-1})$ and $B=L^{(2)}_{n-1}$ the body. Then $T$ contributes exactly $0$ to $s_n$, and $s_n$ equals the within-pair-gap sum over $B$ alone.
+\end{lemma}
+\begin{proof}
+Step 1 appends $00$ and the $1$'s of $L_n$ pair consecutively from the left. The tail carries $2(s_{n-1}-2)$ ones, even, and $\nu(L_n)$ is even, so $\nu(B)$ is even; $B$-ones pair within $B$ and tail ones pair within the tail as blocks $11$ of gap $0$.
+\end{proof}
+
+Combining Lemma~\ref{lem:inert} with~\eqref{eq:counter} yields an exact decomposition of the even-step counter.
+
+\begin{observation}[Body localization and the count/surplus split]\label{obs:decomp}
+At an even-parity step $n$, the nonzero within-pair gaps occupy exactly the first $\nu(L^{(2)}_{n-1})/2$ pair-slots---the body---and the trailing pairs sum to $0$. Each contributing body pair carries a within-pair gap $g\ge 1$; writing $g=1+(g-1)$ partitions the counter exactly as
+\begin{equation}\label{eq:decomp}
+s_n = \underbrace{\#\{\text{body boundaries with odd cumulative $1$-count}\}}_{\text{count term}} + \underbrace{\sum_{\text{those boundaries}}(g-1)}_{\text{size surplus}}.
+\end{equation}
+The count term is bounded below by the floor $\lceil\omega(L_n)/2\rceil$ of Lemma~\ref{lem:cfloor}, with equality only when each parity-raised interval of the cumulative-$1$-count contributes a single boundary---an extremal case that does not occur at tight instances of Conjecture~\ref{conj:mono}. The size surplus is carried by the contributing within-pair gaps of size $\ge 2$.
+\end{observation}
+
+The decomposition~\eqref{eq:decomp} was confirmed quantitatively at every odd-predecessor even step within reach (Appendix~\ref{app:evidence}, Table~\ref{tab:decomp}). In each case the freshly appended tail contributes $0$, in exact agreement with Lemma~\ref{lem:inert}. At the binding case $n=15$ the contributing gaps are dominated by $1$'s---the signature of the cross-paired comb produced by an odd-parity predecessor---the count term is $23{,}273$ (strictly exceeding the lower bound $\lceil\omega(L_{15})/2\rceil=22{,}455$), and the surplus over that count, namely $5810=5613\cdot 1+ 1\cdot 2+ 65\cdot 3$, is supplied entirely by the gaps of size $\ge 2$, which originate, recursively, in the deeper body $L^{(2)}_{n-2}$. The true margin is $s_{15}-s_{13}=349$.
+
+This is the precise sense in which the residual difficulty has been relocated: by~\eqref{eq:decomp} the whole question is whether the size surplus is large enough; \S\ref{sec:12.1} shows that the count term, even with its strongest provable lower bound $\lceil\omega/2\rceil$, can never reach it.
+
+\section{The $\nu$-recurrence and the parity dynamics}\label{sec:nu}
+The parity of $\nu(L_n)$ decides which regime governs step $n$ and is the pivotal discrete datum of the whole development. It obeys an exact recurrence.
+
+\begin{proposition}[$\nu$-recurrence]\label{prop:nu}
+Whenever $F(L)$ is defined, with $\nu=\nu(L)$ and $s$ the counter,
+\[ \nu(F(L))=\begin{cases}\tfrac{\nu}{2}+3s-4,& \nu\text{ even},\\ \tfrac{\nu+1}{2}+3s-3,& \nu\text{ odd}.\end{cases} \]
+Consequently the parity of $\nu(L_{n+1})$ is determined by $(\nu(L_n)\bmod 4,\,s_n\bmod 2)$; for even parity, $\nu(L_{n+1})\equiv\nu(L_n)/2+s_n\pmod 2$.
+\end{proposition}
+\begin{proof}
+$\nu(F(L))=\nu(L^{(2)})+2(s-2)$. By Lemma~\ref{lem:reshape}, $L^{(2)}$ has $m$ runs of total $1$-length $m+\sum_j g_j$. For even parity, $\sum_j g_j=s$ and $m=\nu/2$, so $\nu(L^{(2)})=\nu/2+s$; for odd parity, $\sum_j g_j=s+1$ and $m=(\nu+1)/2$, so $\nu(L^{(2)})=(\nu+1)/2+s+1$. Substitute.
+\end{proof}
+
+Iterating Proposition~\ref{prop:nu} from $\nu(L_0)=1$ with the computed counters reproduces the observed parity string exactly (Appendix~\ref{app:evidence}), and yields the parity at $n=26$ without materializing $L_{26}$. The counter $s_n$ itself admits no scalar recurrence: by Proposition~\ref{prop:counter} it depends on the full pattern of odd-cumulative gaps of $L_n$.
+
+\section{Equivalent formulations}\label{sec:equiv}
+We record three reformulations of the process. Throughout, $\popcount(x)$ denotes the popcount of $x$ and $V(L):=\mathrm{int}(L,2)$ the binary value.
+
+\subsection{The pair-and-fill identity}\label{sec:10.1}
+For an integer $M$ with $\popcount(M)=2m$ and $1$-bit positions $b_1>b_2>\dots>b_{2m}\ge 0$, set
+\[ S(M):=\sum_{i=1}^{2m}(-1)^{i+1}2^{b_i}. \]
+
+\begin{lemma}[Step 2 is doubling of the alternating bit-sum]\label{lem:S}
+If $\nu(L)$ is even and $M=V(L^{(1)})$, then $V(L^{(2)})=2S(M)$. The pair $(b_{2j-1},b_{2j})$ effects the local change $2^{b_{2j-1}}-3\cdot 2^{b_{2j}}$ to $M$.
+\end{lemma}
+\begin{proof}
+The left/right members of pair $j$ sit at heights $A_j=b_{2j-1}>B_j=b_{2j}$. Step 2 replaces $2^{A_j}+2^{B_j}$ by $\sum_{i=B_j+1}^{A_j}2^i=2^{A_j+1}-2^{B_j+1}$; the local change is $2^{A_j}-3\cdot 2^{B_j}$. Summing, $V(L^{(2)})=\sum_j(2^{A_j+1}-2^{B_j+1})=2\sum_i(-1)^{i+1}2^{b_i}=2S(M)$.
+\end{proof}
+
+The constant $3$ here is the genuine arithmetic kernel of the process, the structural counterpart of the $3$ in the Collatz map.
+
+\subsection{The integer form}\label{sec:10.2}
+By Lemma~\ref{lem:prefix} the leading $0$-run of every iterate is empty, so each $L_n$ begins with $1$; each ends in $0$ (Lemma~\ref{lem:end0}). Hence $V$ is a bijection from the reachable strings onto $\mathbb Z^+$, with $V(L_0)=2$.
+
+\begin{thm}[Integer conjugate]\label{thm:T}
+Through $V$, $F$ is conjugate to $T:\mathbb Z^+\dashrightarrow\mathbb Z^+$ given by
+\[ T(N)=2S(M)\cdot 16^{s-2}+6\cdot\tfrac{16^{s-2}-1}{15},\qquad M=\begin{cases}4N,& \popcount(N)\text{ even},\\ 16N+1,& \popcount(N)\text{ odd},\end{cases} \]
+\[ s=s_{\mathrm{init}}+\popcount(S(M))-\tfrac12\popcount(M),\qquad s_{\mathrm{init}}=\begin{cases}0,& \popcount(N)\text{ even},\\ -1,& \popcount(N)\text{ odd},\end{cases} \]
+defined exactly when $s\ge 2$. In hexadecimal, $T(N)$ is the digit string of $2S(M)$ followed by $s-2$ copies of the digit $6$. The seed is $N_0=2$.
+\end{thm}
+\begin{proof}
+Step 1 multiplies by $4$ (pad $00$) or $16$ then $+1$ (pad $0001$), giving $M$. Step 2 gives $V(L^{(2)})=2S(M)$ (Lemma~\ref{lem:S}). The counter is $s=s_{\mathrm{init}}+\nu(L^{(2)})-m=s_{\mathrm{init}}+\popcount(S(M))-\tfrac12\popcount(M)$. Step 3, when $s\ge 2$, appends $(0110)^{s-2}$; since $0110_2=6$ fills one hex digit, this is multiplication by $16^{s-2}$ followed by adding $\underbrace{6\cdots 6}_{s-2}=6(16^{s-2}-1)/15$.
+\end{proof}
+
+\begin{remark}[How close to Collatz?]\label{rem:collatz}
+The shape is Collatz-like: a parity test on $\popcount(N)$ selects one of two affine pads, the kernel carries the constant $3$ (Lemma~\ref{lem:S}), and the whole question reduces to one inequality on a derived scalar. Two features are not Collatz-like, and both are intrinsic. First, the orbit grows doubly exponentially,
+\[ N_0,N_1,N_2,N_3,\dots=2,\,998,\,45\,868\,646,\,213\,192\,976,\dots, \]
+because the binary value carries $\Theta(|L_n|)$ digits and $|L_n|\sim 4^{s_n}$ grows geometrically. Second, $S$ is non-local: it depends on the global ordering of all set bits rather than on $N$ through a fixed affine rule.
+\end{remark}
+
+\subsection{The gap-vector form}\label{sec:10.3}
+Encode a string that begins with $1$ and ends in $0$ by the gaps between its consecutive $1$'s together with its trailing-zero count,
+\[ (e;t),\qquad e=(e_1,\dots,e_{N-1})\in\mathbb Z_{\ge 0}^{N-1},\ t\ge 1, \]
+where $N=\nu(L)$. The seed is $\bigl((\,);1\bigr)$.
+
+\begin{proposition}[Gap-vector conjugate]\label{prop:gap}
+Write $N=\nu$. One step of $F$ is:
+\begin{itemize}
+\item (\emph{pad; seed the counter}) If $N$ is even, set $s_{\mathrm{init}}:=0$ and leave $(e;t)$ unchanged. If $N$ is odd, set $s_{\mathrm{init}}:=-1$, append $e_N:=t+3$, reset $t:=0$, and increment $N$. Now $N$ is even.
+\item (\emph{counter}) $s=s_{\mathrm{init}}+(e_1+e_3+e_5+\cdots+e_{N-1})$; halt if $s<2$.
+\item (\emph{rewrite}) The new word of $1$-runs and separators is
+\[ 1^{e_1+1}\,0^{1+e_2}\,1^{e_3+1}\,0^{1+e_4}\cdots 1^{e_{N-1}+1}\ \text{followed by}\ (0110)^{s-2}. \]
+The new trailing-zero count is $t'=1$ when $s>2$, and $t'=t+3$ when $s=2$.
+\end{itemize}
+\end{proposition}
+\begin{proof}
+This is the run-length calculus of \S\ref{sec:rl} in gap coordinates. Pair $j$ has within-pair gap $e_{2j-1}$ and yields a block of $e_{2j-1}+1$ ones; its zeroed right endpoint together with the between-pair gap $e_{2j}$ makes the separator $1+e_{2j}$. The counter is $s_{\mathrm{init}}+\sum_j e_{2j-1}$. The odd-$N$ case is the $0001$ pad. When $s>2$ the appended factor ends in $0$, $t'=1$; when $s=2$ the word ends at the zeroed right endpoint of the last pair, after which lie the $t+2$ trailing zeros of the padded string (two from the $00$ pad), giving $t'=t+3$.
+\end{proof}
+
+\begin{remark}[Two subtleties of the encoding]\label{rem:enc-subtleties}
+Two points are easy to get wrong and worth isolating. First, the additive seed $s_{\mathrm{init}}=-1$ of the odd-parity pad must be carried in the counter line; without it the seed step returns $s=4$ in place of $s_0=3$. Second, the trailing-zero count is not always $1$: the unique $s=2$ step ($n=2$) produces $L_3$ with four trailing zeros ($t=1$, so $t'=t+3=4$), so $t$ must be tracked honestly. With both handled as stated, the gap-vector engine reproduces the entire trajectory exactly.
+\end{remark}
+
+\subsection{The scalar form}\label{sec:10.4}
+Collapsing to the counter alone: by Proposition~\ref{prop:alleven} the all-even profile never occurs on the trajectory, and then (Proposition~\ref{prop:single}) a halt is exactly some $s_n=1$. With Corollary~\ref{cor:remaining} this gives the following.
+
+\begin{proposition}[Scalar form]\label{prop:scalar}
+On the trajectory, $F$ is non-halting if and only if the integer sequence $(s_n)_{n\ge 0}$ never re-enters $\{2,3,4,5\}$ after $n=2$; a clean sufficient condition is two-step monotonicity $s_n\ge s_{n-2}$ for $n\ge 3$ (Conjecture~\ref{conj:mono}). The sequence satisfies $s_n\ge 2s_{n-1}-2$ at popcount-odd steps and $s_n\ge\lceil(s_{n-2}-3)/2\rceil$ at popcount-even steps, but admits no closed recurrence.
+\end{proposition}
+
+This last point is the precise sense in which the problem is of Collatz type, and it is the wall on which both the forward inequality and the backward search (\S\ref{sec:backward}) rest.
+
+\section{The backward viewpoint}\label{sec:backward}
+A complementary strategy reasons from a hypothetical halt. Its foundation is the finiteness noted after Lemma~\ref{lem:length}: preimages are strictly shorter, so the backward tree of any string is finite and orbit membership is decidable. In fact $F$ is exactly invertible.
+
+\begin{proposition}[Invertibility]\label{prop:inv}
+Let $T\in\{0,1\}^*$. Every $X$ with $F(X)=T$ arises as follows: choose $u\ge 0$ with $T=Y\cdot(0110)^u$ and $Y$ ending in $0$; from the maximal $1$-blocks $[a,b]$ of $Y$ form the candidate $L^{(1)}$ with $1$'s exactly at $\{a,b+1\}$ over the length of $Y$; delete a suffix $00$ or $0001$ to obtain $X$; and retain $X$ iff $F(X)=T$. There are finitely many preimages.
+\end{proposition}
+\begin{proof}
+If $F(X)=T$ then $T=L^{(2)}\cdot(0110)^{s-2}$ with $L^{(2)}$ ending in $0$, so $T$ has the stated form with $u=s-2$ and $Y=L^{(2)}$. Step 2 turns each pair $(p_{2j-1},p_{2j})$ into the block $[p_{2j-1},p_{2j}-1]$ and zeros $p_{2j}$, so the blocks $[a,b]$ of $Y$ recover the pair endpoints, determining $L^{(1)}$ uniquely. Verifying $F(X)=T$ discards spurious reconstructions. Finiteness is Lemma~\ref{lem:length}.
+\end{proof}
+
+Proposition~\ref{prop:inv} turns the backward search into a finite, exact computation. Suppose the process first halts at index $N\ge 2$. By Proposition~\ref{prop:firsthalt}, $s_{N-2}\le 5$. We now ask what is forced about the predecessor counter $s_{N-1}$ and the shape of $L_N$.
+
+\begin{proposition}[Shape of a first halt]\label{prop:halt-corr}
+If the process first halts at $N\ge 2$, then $s_{N-2}\le 5$ (Proposition~\ref{prop:firsthalt}), and by Lemma~\ref{lem:inert} the halt depends only on the body $B=L^{(2)}_{N-1}$: the tail $(0110)^{s_{N-1}-2}$ of $L_N$ contributes $0$ to $s_N$. Consequently the predecessor counter $s_{N-1}$ is not determined by the halt and may be arbitrarily large.
+\end{proposition}
+\begin{proof}
+Proposition~\ref{prop:firsthalt} gives $s_{N-2}\le 5$. At the halt $\nu(L_N)$ is even, so Lemma~\ref{lem:inert} applies to the step computing $s_N$, which therefore depends on $B$ alone, independently of the tail length $s_{N-1}-2$.
+\end{proof}
+
+\begin{remark}[The predecessor counter is not pinned at a first halt]\label{rem:rem-pinning}
+It is tempting to think that a first halt forces $s_{N-1}=2$, so that the halting string has an empty tail $L_N=L^{(2)}_{N-1}$ and consists of $m$ image blocks summing to $m+2$ ones. \emph{This is not so}: the pinning $s_{N-1}=2$ would contradict Lemma~\ref{lem:inert}, which makes the halt independent of $s_{N-1}$. Two explicit counterexamples:
+\begin{itemize}
+\item the seed $1100111$ first halts at $N=2$ with $s_{N-1}=3$, $s_N=1$;
+\item the seed $110011111110$ first halts at $N=8$ with $s_{N-1}=102$, $s_N=1$.
+\end{itemize}
+The subtlety is that the tail's $11$ blocks are even runs of $L_N$, not odd runs, so Lemma~\ref{lem:cfloor} yields only $\lceil\omega/2\rceil=1$ rather than $s_N\ge 2$. The halting strings are therefore $B\cdot(0110)^k$ ($k\ge 0$) with $B$ fragile.
+\end{remark}
+
+The finite backward decision procedure is exact regardless. By Lemma~\ref{lem:length} the iterated preimages of any fixed string form a finite tree, so ``does $w$ ever occur on the trajectory?'' is decided by tracing that tree to its roots and testing membership of $L_0=10$. Running this decision procedure wholesale, every halting string of length at most $14$---there are $4565$ of them, of which $3137$ have three or more $1$-runs---is found to be absent from the trajectory. The procedure does not extend to a closed-form argument for unbounded lengths: backward chains lengthen with size, so the backward route demands a uniform descent of strength equal to the two-step monotonicity $s_n\ge s_{n-2}$. As \S\ref{sec:resist} makes precise, this is the same wall the forward route meets.
+
+\section{Computational results}\label{sec:comp}
+All computations were carried out by two independent implementations of Definition~\ref{def:F}, described in Appendix~\ref{app:alg}: a direct bit-level simulator and a run-length engine acting on the gap sequence of the $1$'s. The two agree on every output where both are feasible---full strings through $n=12$, and the scalar quantities $s_n$ and $\nu(L_n)\bmod 2$ through $n=25$---and the run-length engine was further cross-checked against the $\nu$-recurrence (Proposition~\ref{prop:nu}). Every figure reported here was reproduced by at least two independent computations; the external verification is described in Appendix~\ref{app:ai}.
+
+\paragraph{Counter and parity.} Table~\ref{tab:traj} lists $s_n$ and the parity of $\nu(L_n)$ for $0\le n\le 26$. Every $s_n\ge 2$; the unique near miss is $s_2=2$.
+
+\paragraph{Two-step monotonicity.} The inequality $s_n\ge s_{n-2}$ holds for every $3\le n\le 26$. The tightest instance is the odd$\to$even transition $n=15$, where $s_{15}/s_{13}=29083/28734\approx 1.0121$.
+
+\paragraph{A long even-parity run.} The parity of $\nu(L_n)$ is even at $n=2,3,10,11,12,15,19,21,22,23,24,25,26$. In particular $n=21,\dots,26$ are six consecutive even-parity steps---precisely the configuration whose danger~\eqref{eq:half} cannot a priori rule out. Yet across this run the counter strictly increases at every step,
+\[ s_{21..26}=3\,732\,091,\,8\,693\,523,\,18\,136\,691,\,24\,703\,847,\,55\,831\,137,\,88\,613\,778, \]
+so the feared compounding of near-halvings does not occur. As $n=26$ is even-after-even, it falls in the regime already settled by Theorem~\ref{thm:floor}.
+
+\subsection{The residual obstruction, localized}\label{sec:12.1}
+The even-parity steps split by the parity of their predecessor:
+\begin{center}
+\begin{tabular}{ll}
+predecessor even (Theorem~\ref{thm:floor} applies) & $n=3,11,12,22,23,24,25,26$\,; ratios $1.60$--$7.33$\\
+predecessor odd (open) & $n=10,15,19,21$\,; ratios $1.36,1.01,1.32,5.66$
+\end{tabular}
+\end{center}
+Every tight instance of Conjecture~\ref{conj:mono}---$n=15$ ($1.012$), $n=19$ ($1.324$), $n=10$ ($1.361$)---has an odd-parity predecessor. The structural reason is that an odd-parity predecessor forces cross-pairing of its tail (Lemma~\ref{lem:tailodd}, $\varepsilon=1$), producing odd runs separated by small gaps rather than the size-$3$ comb of Theorem~\ref{thm:floor}; at $n=15$ the counted gaps average $1.25$, so the floor collapses to the factor $\tfrac12$ of~\eqref{eq:half}.
+
+By the decomposition~\eqref{eq:decomp} of Observation~\ref{obs:decomp}, the entire residual difficulty is the size-surplus term. At the binding case the strongest provable lower bound on the count term---the floor $\lceil\omega(L_n)/2\rceil$ of Lemma~\ref{lem:cfloor}---is already insufficient: directly,
+\[ \lceil\omega(L_{15})/2\rceil=22\,455<s_{13}=28\,734,\qquad \omega(L_{15})=44\,910<2\,s_{13}, \]
+so any argument of the form ``$s_n\ge\tfrac12\omega(L_n)$ with $\omega(L_n)\ge 2s_{n-2}$'' is dead on arrival. Concretely, the contributing-gap multiset at $n=15$ is $\{1:17\,594,\,2:5613,\,3:1,\,4:65\}$ (Table~\ref{tab:decomp}): the count term contributes the $23\,273$ boundaries---strictly exceeding the lower bound $22\,455$---and the surplus over that count, namely $5613\cdot 1+1\cdot 2+65\cdot 3=5810$, is supplied entirely by the gaps of size $\ge 2$, which originate, recursively, in the deeper body $L^{(2)}_{n-2}$. The true margin is $s_{15}-s_{13}=349$.
+
+This is the entire residual content of Conjecture~\ref{conj:mono}:
+\[ \text{prove }s_n\ge s_{n-2}\text{ at an even-parity step $n$ whose predecessor is of odd parity,} \]
+a statement requiring control of the alignment-filtered sizes of the cross-paired gaps, not merely of odd-run counts. The surplus is a sum of the predecessor's within-pair gaps restricted to the boundaries at which the running $1$-count is odd; that restriction is an alignment depending on the parities of all earlier run lengths, hence on the full history---by Proposition~\ref{prop:scalar}, on a quantity with no scalar recurrence. No descent or Lyapunov function in the computable data ($s_n$, $s_n+s_{n-1}$, ratios, $\omega$, gap-moment sums) was found that is preserved across the $s_2=2$ near miss while forcing $s_n\ge 6$ thereafter. The inequality thus appears to lie beyond elementary methods; \S\ref{sec:resist} develops why, and \S\ref{sec:status} states the status precisely.
+
+\section{Why the problem resists}\label{sec:resist}
+It is worth setting out, concretely, why a problem whose answer is in so little doubt should be so hard to prove. The obstruction is not a shortage of structure---the process is unusually transparent---but a specific mismatch between the quantity one must control and the quantities one can compute. We organise the discussion around the two natural proof strategies, which turn out to fail at the same point.
+
+\subsection{Two routes, one obstruction}\label{sec:13.1}
+The forward route sweeps along the trajectory and asks how a single application of $F$ reshapes runs. By the reshaping identities (Lemmas~\ref{lem:reshape}--\ref{lem:oddrunfloor}) the odd-length runs of $L_{n+1}$ are exactly the images of the even-gap pairs of $L_n$, the appended tail contributes only even runs, and intra-run pairing manufactures odd runs in profusion. To forbid both fragile profiles at once it suffices to know that every even-parity iterate carries at least four odd-length runs (four, not two, because the count is necessarily even). Call this \emph{Invariant~(A)}. It instantly excludes $\omega=0$ and $\omega=2$, and with Lemma~\ref{lem:odd} it would finish Theorem~\ref{thm:central}.
+
+The difficulty is that the only uniform lower bound available, $\mu\ge m-(R'-1)$ of Lemma~\ref{lem:oddrunfloor}, collapses precisely when the string degenerates to a near-comb of length-one runs: for $L=1010\cdots 10$ one has $\nu(\Lambda)\approx R'$ and the bound gives no floor at all. Invariant~(A) therefore cannot be read off a single step; it is a statement about the orbit never degenerating to such a comb at an even step.
+
+The backward route assumes a first halt at $N$ and analyses $L_N$. By Proposition~\ref{prop:halt-corr}, $s_{N-2}\le 5$ and the halt is a functional of the body $B=L^{(2)}_{N-1}$ alone---the tail of $L_N$ is counter-inert. The analysis of Remark~\ref{rem:rem-pinning} allows nonempty tails: the halting strings are $B\cdot(0110)^k$ with $B$ fragile, and the finite preimage decision procedure (Proposition~\ref{prop:inv}) traces the backward tree of any $B$ to its roots and tests membership of $L_0$. This procedure dispatches every halting string of length $\le 14$, but it does not extend to a closed-form argument: backward chains lengthen with $|B|$, and what is required to rule out fragile $B$ uniformly is precisely Invariant~(A)---that no $L_n$ ever lands in a fragile shape. The forward route calls it Invariant~(A); the backward route needs it to retire the unbounded family of fragile bodies $B$. The two decisive steps coincide.
+
+\subsection{Why that obstruction is a wall}\label{sec:13.2}
+Three features, each intrinsic, conspire to keep Invariant~(A) out of reach.
+
+\emph{The counter is a parity functional, small only on fragile shapes.} By Proposition~\ref{prop:counter}, $s$ adds up the internal gaps that sit after an odd cumulative count of $1$'s. This is a global parity selection, not a local or affine readout: which gaps are counted depends on the parities of all preceding run lengths. A parity functional can be small only on configurations of a very particular shape, so the entire content of the theorem is that the dynamics steer the orbit clear of those shapes---and no amount of cleverness about a single step controls a global parity alignment.
+
+\emph{The decisive quantity is a size surplus, not a count.} The exact decomposition~\eqref{eq:decomp} splits the even-step counter into a count term, bounded below by the floor $\lceil\omega/2\rceil$, and a size surplus carried by the within-pair gaps of size $\ge 2$ at odd boundaries. At the binding case $n=15$ the count floor $\lceil\omega(L_{15})/2\rceil=22\,455$ is already smaller than $s_{13}=28\,734$, so no argument bounding odd-run counts from below by $\lceil\omega/2\rceil$ can close the gap (\S\ref{sec:12.1}); the whole margin comes from the sizes of a few gaps, and those sizes are themselves alignment-filtered, depending on the full history. One is asked to control not how many odd runs there are, but how large the right-aligned ones are---a strictly finer datum.
+
+\emph{There is no scalar recurrence, and the single near miss forbids crude monotonicity.} By Proposition~\ref{prop:scalar} the counter obeys no closed recurrence: $s_{n+1}$ depends on the entire odd-cumulative gap pattern of $L_n$, not on finitely many earlier counters. This is the precise sense in which the system is of Collatz type, and through the integer conjugate $T$ (Theorem~\ref{thm:T}) the kinship is exact---a popcount-parity test selecting one of two affine pads, with the kernel carrying the Collatz constant $3$ (Lemma~\ref{lem:S}). Worse for any monotone approach, the trajectory touches the threshold with equality exactly once, at $s_2=2$. A successful argument must therefore permit the counter to descend all the way to $2$ once and then explain---structurally---why it never descends again.
+
+\emph{Growth makes finite verification powerless as a substitute.} The integer orbit grows doubly exponentially (Remark~\ref{rem:collatz}), because the binary value carries $\Theta(|L_n|)$ digits and $|L_n|\sim 4^{s_n}$ grows geometrically; the run count itself roughly triples per step. No finite computation, however far pushed, can stand in for the missing uniform argument.
+
+\subsection{What the evidence does and does not settle}\label{sec:13.3}
+The reductions are complete and rigorous: Theorem~\ref{thm:central} is equivalent, modulo the proved Lemmas~\ref{lem:odd},~\ref{lem:reshape} and Proposition~\ref{prop:counter}, to the single statement that no even-parity iterate wears a fragile profile, for which two-step monotonicity is a clean sufficient condition. That statement holds for every iterate within computational reach---the even members carry $4,6,1420,3704,1960,44910,\dots$ odd runs, never the $0$ or $2$ a halt would require---and for every halting string of length at most $14$ by the backward decision procedure. The counter's geometric recovery after its lone near miss, the strict growth even across six consecutive even-parity steps, two independent simulators in agreement, and the external verification of Appendix~\ref{app:ai} all point the same way. What remains is a single, sharply isolated inequality whose proof would require a size-aware estimate of the cross-paired gap structure that the present methods do not supply.
+
+\section{Status}\label{sec:status}
+\subsubsection*{Proved} $F$ strictly lengthens and outputs end in $0$ (Lemmas~\ref{lem:length},~\ref{lem:end0}); odd parity forces $s\ge 2$ (Lemma~\ref{lem:odd}); for even parity the counter is the odd-cumulative gap sum~\eqref{eq:counter}, whence the halting dichotomy (Corollary~\ref{cor:halting}); the reshaping identities (Lemmas~\ref{lem:reshape}--\ref{lem:growth}); the prefix-alternation invariant $r_1(L_n)=1\iff n$ even (Lemma~\ref{lem:prefix}); the exclusion of the all-even profile, unconditionally at even indices and---via $s_{n-2}\ge 4$---at odd indices (Proposition~\ref{prop:alleven}); the Reduction, that a first halt forces $s_{N-2}\le 5$ (Proposition~\ref{prop:firsthalt}); the $\nu$-recurrence (Proposition~\ref{prop:nu}); the counter-inert tail and the exact count/surplus decomposition (Lemma~\ref{lem:inert}, Observation~\ref{obs:decomp}); the even-step floor giving two-step monotonicity at every even step with an even-parity predecessor (Theorem~\ref{thm:floor}); invertibility of $F$ and the first-halt shape (Propositions~\ref{prop:inv},~\ref{prop:halt-corr}).
+
+\subsubsection*{Reduced} Theorem~\ref{thm:central} is equivalent (Corollary~\ref{cor:remaining}) to the scalar statement that $(s_n)$ never re-enters $\{2,3,4,5\}$ after $n=2$, for which two-step monotonicity $s_n\ge s_{n-2}$ is sufficient. Monotonicity itself is now reduced to a single configuration: an even-parity step with an odd-parity predecessor (\S\ref{sec:12.1}). The odd-parity steps ($s_n\ge 2s_{n-1}-2$) and the even-after-even steps (Theorem~\ref{thm:floor}) are settled. Within the open configuration, the difficulty is localized further by~\eqref{eq:decomp} onto the alignment-filtered size surplus, the count term being provably insufficient under its strongest available lower bound.
+
+\subsubsection*{Open} The inequality $s_n\ge s_{n-2}$ at an even step with odd-parity predecessor, and hence Conjecture~\ref{conj:mono} and Theorem~\ref{thm:central}. The binding case $n=15$ has a margin of $1.2\%$. The computational evidence---the counter's geometric growth after its single near miss, the strict growth even across a run of six even-parity steps, two independent simulators in agreement, and the external verification of Appendix~\ref{app:ai}---leaves little doubt that the theorem is true; what remains is the closing of one sharply delimited, structurally identified inequality.
+
+\appendix
+\section{Algorithms}\label{app:alg}
+All computational claims rest on direct implementations of Definition~\ref{def:F}. We summarize the two engines; both were re-implemented independently during the external verification of Appendix~\ref{app:ai}, with agreement on all common outputs.
+
+\paragraph{Bit-level simulator.} Given $L$: set $k=\nu(L)$; if $k$ is even append $00$ and $s\leftarrow 0$, else append $0001$ and $s\leftarrow -1$. List the $1$-positions $p_1<\dots<p_{2m}$; for $j=1,\dots,m$ set positions $p_{2j-1},\dots,p_{2j}-1$ to $1$, set $p_{2j}$ to $0$, and $s\leftarrow s+(p_{2j}-p_{2j-1}-1)$. If $s<2$ halt; otherwise return $L^{(2)}\cdot(0110)^{s-2}$. This is the literal ground truth, feasible while the string fits in memory (through $n=12$ for full strings).
+
+\paragraph{Run-length / gap engine.} Represent $L$ by its run vector $[c_0,r_1,c_1,\dots,r_R,c_R]$, equivalently by the gap-vector $(e;t)$ of \S\ref{sec:10.3}. One step is computed by Proposition~\ref{prop:gap}: pad and seed $s_{\mathrm{init}}$; read $s$ as the seed plus the odd-indexed gap sum; emit blocks $e_{2j-1}+1$ and separators $1+e_{2j}$; append the tail and update $t$ honestly. This runs in time and space $O(\#\text{runs})$, advancing the trajectory well beyond the point where strings can be stored. The value $s_{26}$ was obtained by a memory-frugal pass that sums separators by cumulative-count parity, never materializing the $1.7\times 10^8$-entry gap vector; that pass was validated against the direct value at $n=10$ before its use at $n=26$.
+
+\section{Computational evidence}\label{app:evidence}
+With $L_0=10$, the counter sequence $s_0,\dots,s_{26}$ is
+\begin{multline*}
+3,5,2,8,31,66,158,392,938,2305,1277,4885,9361,28734,67339,29083,\\
+218336,498138,1332397,659539,4146749,3732091,8693523,18136691,\\
+24703847,55831137,88613778,
+\end{multline*}
+and the parity string of $\nu(L_n)$ for $0\le n\le 26$ is (o $=$ odd, E $=$ even)
+\[ \mathrm{o\ o\ E\ E\ o\ o\ o\ o\ o\ o\ E\ E\ E\ o\ o\ E\ o\ o\ o\ E\ o\ E\ E\ E\ E\ E\ E.} \]
+The $\nu$-recurrence (Proposition~\ref{prop:nu}), iterated from $\nu(L_0)=1$ with these counters, reproduces this parity string exactly, and predicts $\nu(L_{26})=222\,569\,758$, reproduced independently by the separator-parity construction of $s_{26}$. Two-step monotonicity $s_n\ge s_{n-2}$ holds for all $3\le n\le 26$; the tightest instance is $n=15$ ($\approx 1.0121$). For the structural claim of Theorem~\ref{thm:floor}, the reshaped comb was confirmed exactly at $n=3,11,12$.
+
+The odd-run counts $\omega(L_n)$ for $0\le n\le 15$ are
+\[ 1,1,4,6,1,11,47,105,235,589,1420,3704,1960,7549,13983,44910; \]
+the small values occur only at odd-parity iterates where survival is guaranteed by Lemma~\ref{lem:odd}; at every even-parity iterate the count is well above the value $2$ that a halt would require. The backward decision procedure confirms that all $4565$ halting strings of length at most $14$---including the $3137$ with three or more $1$-runs---are absent from the trajectory.
+
+The exact body/tail decomposition of \S\ref{sec:inert} was verified at the odd-predecessor even steps within reach; Table~\ref{tab:decomp} records the result.
+
+\begin{table}[h]\centering
+\begin{tabular}{rrr|l}
+$n$ & $s_n$ & body $\Sigma$ / tail $\Sigma$ & nonzero contributing-gap multiset\\
+\hline
+10 & 1\,277 & 1\,277 / 0 & $\{1:551,\,2:230,\,3:87,\,5:1\}$\\
+15 & 29\,083 & 29\,083 / 0 & $\{1:17\,594,\,2:5613,\,3:1,\,4:65\}$\\
+19 & 659\,539 & 659\,539 / 0 & $\{1:273\,509,\,2:147\,958,\,3:17\,266,\,4:7769,\,5:810,\,10:319\}$
+\end{tabular}
+\caption{Body/tail decomposition of the counter at the open (odd-predecessor) even steps. The tail $\Sigma$ is identically $0$ (Lemma~\ref{lem:inert}). For $n=15$, the count term is $23{,}273$ (strictly exceeding $\lceil\omega/2\rceil=22{,}455$) and the size surplus $5613\cdot 1+1\cdot 2+65\cdot 3=5810$, so $s_{15}=23{,}273+5810=29{,}083$.}
+\label{tab:decomp}
+\end{table}
+
+\begin{table}[h]\centering
+\begin{tabular}{rrl|rrl}
+$n$ & $s_n$ & par.\ $\nu(L_n)$ & $n$ & $s_n$ & par.\ $\nu(L_n)$\\
+\hline
+0 & 3 & odd & 14 & 67\,339 & odd\\
+1 & 5 & odd & 15 & 29\,083 & \textbf{even}\\
+2 & 2 & \textbf{even} & 16 & 218\,336 & odd\\
+3 & 8 & \textbf{even} & 17 & 498\,138 & odd\\
+4 & 31 & odd & 18 & 1\,332\,397 & odd\\
+5 & 66 & odd & 19 & 659\,539 & \textbf{even}\\
+6 & 158 & odd & 20 & 4\,146\,749 & odd\\
+7 & 392 & odd & 21 & 3\,732\,091 & \textbf{even}\\
+8 & 938 & odd & 22 & 8\,693\,523 & \textbf{even}\\
+9 & 2\,305 & odd & 23 & 18\,136\,691 & \textbf{even}\\
+10 & 1\,277 & \textbf{even} & 24 & 24\,703\,847 & \textbf{even}\\
+11 & 4\,885 & \textbf{even} & 25 & 55\,831\,137 & \textbf{even}\\
+12 & 9\,361 & \textbf{even} & 26 & 88\,613\,778 & \textbf{even}\\
+13 & 28\,734 & odd & & &
+\end{tabular}
+\caption{The counter $s_n$ and parity of $\nu(L_n)$, $0\le n\le 26$. Even-parity (potentially halting) steps are set in bold. The value $s_{26}=88\,613\,778$ was obtained by a memory-frugal separator-parity pass and corroborated by the independently computed $\nu(L_{26})=222\,569\,758$ via Proposition~\ref{prop:nu}.}
+\label{tab:traj}
+\end{table}
+
+\section{Computational programs}\label{app:programs}
+The two implementations of Definition~\ref{def:F}---the bit-level simulator and the run-length/gap engine of Appendix~\ref{app:alg}---together with the verification and statistics-gathering scripts, are available at
+\begin{center}
+\url{https://github.com/RobinCodes/Projects/tree/main/Collatz-type%20problem/Collatz-type%20problem%20v6}.
+\end{center}
+
+\section{Note on the use of artificial intelligence}\label{app:ai}
+This work was prepared with substantial assistance from an artificial-intelligence system, and most of the results presented here were created with such assistance. Machine assistance implemented the map of Definition~\ref{def:F} in two independent ways---the bit-level and run-length engines of Appendix~\ref{app:alg}---cross-validated them on every commonly feasible output, extended the computational record of Appendix~\ref{app:evidence}, and helped formulate and prove the structural results: the prefix-alternation invariant (Lemma~\ref{lem:prefix}), the exclusion of the all-even profile (Proposition~\ref{prop:alleven}), the even-step floor (Theorem~\ref{thm:floor}), the $\nu$-recurrence (Proposition~\ref{prop:nu}), the counter-inert tail and its exact decomposition (Lemma~\ref{lem:inert}, Observation~\ref{obs:decomp}), the three reformulations of \S\ref{sec:equiv}, and the localization of the residual obstruction (\S\ref{sec:12.1},~\S\ref{sec:resist}). Computation contributed $s_{26}=88\,613\,778$, $\nu(L_{26})=222\,569\,758$, and the body/tail decompositions of Table~\ref{tab:decomp}.
+
+We do not specify the particular artificial-intelligence system or systems used; readers seeking further detail about the methods are invited to contact the authors: Robin Rovenszky (\texttt{robincodes} on Discord) and notxxdog (\texttt{.notxxdog} on Discord).
+
+Every proof and every computational claim in this paper was independently verified by two human readers and by independent machine re-derivations. An independent re-derivation, working only from the statements of this paper, reconstructed the map of Definition~\ref{def:F} from scratch, re-implemented it in two further from-scratch engines (a literal bit-level engine and a numpy gap-vector engine), cross-validated the two engines against each other, and reproduced every computational and structural claim: the counter sequence and parity through $n=26$ with $s_{26}=88\,613\,778$ and $\nu(L_{26})=222\,569\,758$; the integer-conjugate values $N_0,\dots,N_3=2,998,45\,868\,646,213\,192\,976$ and the conjugacy $T(N_n)=N_{n+1}$ through $n=7$; all structural lemmas of \S\S\ref{sec:rl}--\ref{sec:struct}--\ref{sec:prefix} by brute force on strings of length $\le 12$ beginning with $1$, with zero violations; the body/tail decomposition multisets of Table~\ref{tab:decomp}; and the count/surplus decomposition of Observation~\ref{obs:decomp}, with the count term identified as the number of contributing boundaries (which strictly exceeds $\lceil\omega/2\rceil$ at tight instances). This re-derivation reached the same conclusion regarding the central inequality---that it lies beyond elementary methods.
+
+No result here is accepted on the basis of machine assertion. Every definition, lemma, and proof is stated so as to be checkable by hand, and every computational claim is reproducible by re-running the procedures of Appendix~\ref{app:alg} and the programs of Appendix~\ref{app:programs}. The status of the central open inequality is reported exactly as it stands.
+
+\end{document}

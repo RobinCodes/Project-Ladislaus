@@ -1,0 +1,713 @@
+\documentclass[11pt,reqno]{amsart}
+\usepackage{lmodern}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amssymb,amsmath,amsthm,mathtools}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{float}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage[margin=1in]{geometry}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{thm}[theorem]{Theorem}
+\newtheorem{proposition}{Proposition}
+\newtheorem{lemma}{Lemma}
+\newtheorem{corollary}{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\newtheorem{example}{Example}
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+\newtheorem{observation}{Observation}
+\newtheorem{conjecture}{Conjecture}
+\newtheorem{question}{Question}
+
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\F}{\mathbb{F}}
+\newcommand{\ord}{\operatorname{ord}}
+\DeclareMathOperator{\lcm}{lcm}
+\newcommand{\gen}[1]{\langle #1 \rangle}
+\newcommand{\dvd}{\mid}
+\newcommand{\Sa}{S_a}
+\newcommand{\half}{\tfrac12}
+\DeclareMathOperator{\popcount}{w}
+
+\title[On the congruences $2^{n}\equiv-1$ and $2^{n}\equiv-3\pmod{n+1}$]{On the congruences $2^{n}\equiv-1$ and $2^{n}\equiv-3 \pmod{n+1}$}
+\author{Robin Rovenszky}
+\author{notxxdog}
+\date{}
+\subjclass[2020]{Primary 11A07, 11Y11; Secondary 11A51, 11N25, 11Y05}
+\keywords{Power-of-two congruences, Fermat pseudoprimes, multiplicative order, discrete logarithm, admissibility sieve, Wieferich primes, OEIS A245728}
+\thanks{Prepared with substantial assistance from an artificial-intelligence system; see the appendix on the use of artificial intelligence. Author contacts: Robin Rovenszky (\texttt{robincodes} on Discord) and notxxdog (\texttt{.notxxdog} on Discord).}
+
+\begin{document}
+
+\begin{abstract}
+We study which integers $m$ satisfy $m\mid 2^{m-1}+3$, equivalently which $n$ satisfy
+$n+1\mid 2^{n}+3$ (OEIS A245728). Only two are known---$61\cdot 228806497$ and
+$67\cdot 44210291368986343$, each a product of two primes---and none lies below $10^{15}$. Our
+central result ties the question to the prime factorisation of $m$: a squarefree
+$m=p_{1}\cdots p_{\omega}$ is a solution if and only if, for every $i$, $-3$ is a power of $2$
+modulo $p_{i}$ and $m\equiv k_{i}+1\pmod{d_{i}}$, where $d_{i}=\ord_{p_{i}}(2)$ and
+$2^{k_{i}}\equiv-3\pmod{p_{i}}$. Equivalently, the largest prime factor of $m$ must divide
+$2^{P-1}+3$ with $P$ the product of the remaining primes, so locating solutions reduces to
+factoring a single, rapidly growing integer. These local conditions exclude a positive
+proportion of primes as factors and cannot be sharpened by prime-power moduli; from them we show
+that every solution is squarefree at each prime below $1093$, and that the only two-prime
+solutions with smaller prime at most $499$ are the two above. Heuristics suggest that this set is infinite (\S\ref{sec:finite})---though extraordinarily
+sparse, dominated by many-prime $m$ beyond any feasible factorisation, which is precisely why
+only two-prime examples have been found. By contrast, $m\mid 2^{m-1}+1$ has no solutions, by a
+short $2$-adic argument.
+\end{abstract}
+
+\maketitle
+\tableofcontents
+
+\section{Introduction}
+
+For an integer $a$, write $S_{a}=\{\,n\ge 1:(n+1)\mid 2^{n}-a\,\}$. Setting $m=n+1$, membership
+$n\in S_{a}$ is equivalent to
+\begin{equation}\label{eq:main}
+m\mid 2^{m-1}-a,\qquad m\ge 2.
+\end{equation}
+This note concerns $a=-1$ and $a=-3$. We prove $S_{-1}=\varnothing$ and assemble, both
+structurally and computationally, what is presently known about $S_{-3}$.
+
+\paragraph{Notation.}
+For an odd prime $p$ with $p\nmid 2$, write $d_{p}=\ord_{p}(2)$, the multiplicative order of $2$
+in $\F_{p}^{\times}$. For $a\in\Z$ with $\gcd(a,p)=1$ and $a\in\gen{2}\subseteq\F_{p}^{\times}$,
+write $\log_{2}a$ for the smallest non-negative integer $k$ with $2^{k}\equiv a\pmod{p}$. We use
+$\widetilde{\log_{2}}a$ analogously for the discrete logarithm in $(\Z/p^{2})^{\times}$. The
+$2$-adic valuation of an integer $N$ is $v_{2}(N)$.
+
+\section{The case \texorpdfstring{$a=-1$}{a=-1}}
+
+\begin{theorem}\label{thm:minus1}
+There is no integer $m>1$ with $m\mid 2^{m-1}+1$. Equivalently, $S_{-1}=\varnothing$.
+\end{theorem}
+
+\begin{proof}
+Suppose such an $m$ exists. The integer $2^{m-1}+1$ is odd, so $m$ is odd. Fix any prime
+$p\mid m$ and set $d=d_{p}$. From $p\mid 2^{m-1}+1$,
+\[
+2^{m-1}\equiv-1\pmod{p},\qquad 2^{2(m-1)}\equiv 1\pmod{p}.
+\]
+Hence $d\mid 2(m-1)$ but $d\nmid m-1$ (since $p$ is odd, $-1\not\equiv 1\pmod{p}$). It follows
+that $d/\gcd(d,m-1)=2$, so $\gcd(d,m-1)=d/2$. Comparing $2$-adic valuations,
+$v_{2}(d)-1=v_{2}(\gcd(d,m-1))\le v_{2}(m-1)$ on the one hand, while $d\nmid m-1$ together with
+$d\mid 2(m-1)$ forces $v_{2}(d)>v_{2}(m-1)$ on the other. Therefore
+\begin{equation}\label{eq:val}
+v_{2}(d)=v_{2}(m-1)+1.
+\end{equation}
+Now $d\mid p-1$, so $v_{2}(p-1)\ge v_{2}(d)=v_{2}(m-1)+1$. Setting $\nu=v_{2}(m-1)+1$, we have
+shown $p\equiv 1\pmod{2^{\nu}}$ for every prime $p\mid m$. Since $m$ is a product of primes in
+$1+2^{\nu}\Z$, we get $m\equiv 1\pmod{2^{\nu}}$, i.e.\ $2^{\nu}\mid m-1$. But
+$\nu=v_{2}(m-1)+1$, contradicting the definition of $v_{2}(m-1)$.
+\end{proof}
+
+\begin{remark}\label{rem:roots}
+The proof gives slightly more: for any $m\ge 2$ and any odd $a$ with $\gcd(a,m)=1$ and
+$a\equiv-1\pmod{p}$ for every $p\mid m$, the same $2$-adic argument applies. The obstruction is
+genuinely about square roots of unity, and this is exactly why it does not transfer to $a=-3$:
+$-3$ is not a root of unity modulo a typical prime, so no global multiplicative collapse occurs.
+\end{remark}
+
+\section{The case \texorpdfstring{$a=-3$}{a=-3}: elementary restrictions}
+
+We turn to \eqref{eq:main} with $a=-3$, that is,
+\begin{equation}\label{eq:star}\tag{$\star$}
+m\mid 2^{m-1}+3.
+\end{equation}
+
+\begin{proposition}\label{prop:elem}
+Let $m\ge 2$ satisfy \eqref{eq:star}. Then:
+\begin{enumerate}[label=\textup{(\roman*)}]
+\item $m$ is odd, equivalently $n=m-1$ is even;
+\item $3\nmid m$;
+\item $m$ is composite.
+\end{enumerate}
+\end{proposition}
+
+\begin{proof}
+(i) $2^{m-1}+3$ is odd, so $m$ is odd. (ii) If $3\mid m$ then $3\mid 2^{m-1}+3$, hence
+$3\mid 2^{m-1}$, impossible. (iii) If $m$ is prime, Fermat's little theorem gives
+$2^{m-1}\equiv 1\pmod m$, so $m\mid 4$, forcing $m\in\{2\}$, contradicting (i).
+\end{proof}
+
+\section{The known solutions}
+
+The integers $n$ satisfying $(n+1)\mid 2^{n}+3$ form OEIS sequence A245728~\cite{oeis}. Only two
+terms are known:
+\[
+m_{1}=n_{1}+1=13957196317=61\cdot 228806497,
+\]
+\[
+m_{2}=n_{2}+1=2962089521722084981=67\cdot 44210291368986343,
+\]
+and no further $n$ exists with $n+1<10^{15}$. Both factorisations are products of two distinct
+primes; in each case the smaller prime is small ($61$ or $67$) and the cofactor is large. Both
+were verified directly to satisfy \eqref{eq:star}, and all four factors are prime. The second
+solution exceeds $10^{18}$ and was found structurally rather than by enumeration; see
+Section~\ref{sec:comp}.
+
+\section{Admissibility: a sieve on prime factors}\label{sec:sieve}
+
+The next lemma gives a strong necessary condition that every prime divisor of $m$ must satisfy;
+it underlies all subsequent analysis.
+
+\begin{lemma}[Local condition at a prime divisor]\label{lem:local}
+Let $m\ge 5$ satisfy \eqref{eq:star}, let $p$ be a prime dividing $m$, and write $m=p^{a}t$ with
+$\gcd(p,t)=1$. Then $p\notin\{2,3\}$, the element $-3$ lies in $\gen{2}\subseteq\F_{p}^{\times}$,
+and, writing $d=d_{p}$ and $k=\log_{2}(-3)\bmod p$,
+\begin{equation}\label{eq:loc}
+t\equiv k+1\pmod{d}.
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+By Proposition~\ref{prop:elem}, $p$ is odd and $p\ne 3$, so $\gcd(p,6)=1$. Since $d\mid p-1$,
+$p\equiv 1\pmod d$, hence $p^{a}\equiv 1\pmod d$ and $m\equiv t\pmod d$. Therefore
+$m-1\equiv t-1\pmod d$ and $2^{m-1}\equiv 2^{t-1}\pmod p$. Since $p\mid 2^{m-1}+3$, this gives
+$2^{t-1}\equiv-3\pmod p$, which both shows $-3\in\gen{2}$ and yields \eqref{eq:loc}.
+\end{proof}
+
+\begin{definition}\label{def:adm}
+A prime $p\notin\{2,3\}$ is \emph{admissible} if $-3\in\gen{2}\subseteq\F_{p}^{\times}$ and,
+writing $d=d_{p}$ and $k=\log_{2}(-3)$:
+\begin{enumerate}[label=\textup{(\Alph*)}]
+\item if $d$ is even, then $k$ is even;
+\item if $3\mid d$, then $k\not\equiv 2\pmod 3$.
+\end{enumerate}
+\end{definition}
+
+\begin{theorem}\label{thm:adm}
+Every prime divisor of any $m$ satisfying \eqref{eq:star} is admissible.
+\end{theorem}
+
+\begin{proof}
+Fix $p\mid m$ and use the notation of Lemma~\ref{lem:local}, with $t=m/p^{v_{p}(m)}$. Since $m$
+is odd, $t$ is odd; since $3\nmid m$, $3\nmid t$. Reduce \eqref{eq:loc} modulo $2$ and modulo
+$3$. If $d$ is even, then $t\bmod d$ has the same parity as $t$, namely odd, so $k+1$ is odd,
+i.e.\ $k$ is even. If $3\mid d$, then $t\bmod d$ has the same residue modulo $3$ as $t$, which is
+$1$ or $2$ but not $0$, so $k+1\not\equiv 0\pmod 3$, i.e.\ $k\not\equiv 2\pmod 3$.
+\end{proof}
+
+\paragraph{Numerical effect of the sieve.}
+Among the primes $p<200$ for which $-3\in\gen{2}$ in $\F_{p}^{\times}$ (a necessary condition
+without which $p$ cannot divide any $m$), Theorem~\ref{thm:adm} eliminates substantially more
+than half. Table~\ref{tab:sieve} records the data; admissible primes are marked $\checkmark$.
+The admissible primes below $200$ are
+\[
+13,\ 19,\ 61,\ 67,\ 79,\ 103,\ 193,\ 199.
+\]
+The two known solutions use the admissible primes $61$ and $67$ together with admissible large
+cofactors (one verifies directly that $228806497$ and $44210291368986343$ are admissible).
+Condition (A) eliminates roughly half of the eligible primes (those with $d$ even and $k$ odd,
+which by equidistribution is half), and condition (B) eliminates a further third of those with
+$3\mid d$. Empirically, over primes below $2000$, about $56\%$ are $-3$-eligible and the sieve
+removes about $61.5\%$ of those, leaving roughly $21.6\%$ of all primes admissible. Thus
+admissible primes form a sparse but \emph{positive-proportion} subsequence (conjecturally of
+positive density, by an Artin-type heuristic); in particular the supply of candidate small
+factors is infinite, which already signals that no finite search can be conclusive.
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{rrrccc}
+\toprule
+$p$ & $d_{p}$ & $k$ & (A) $k$ even if $2\mid d$ & (B) $k\not\equiv 2\ (3)$ if $3\mid d$ & adm. \\
+\midrule
+5   & 4  & 1  & fail & ---  & $\times$ \\
+7   & 3  & 2  & ---  & fail & $\times$ \\
+11  & 10 & 3  & fail & ---  & $\times$ \\
+13  & 12 & 10 & ok   & ok   & $\checkmark$ \\
+19  & 18 & 4  & ok   & ok   & $\checkmark$ \\
+29  & 28 & 19 & fail & ---  & $\times$ \\
+37  & 36 & 8  & ok   & fail & $\times$ \\
+53  & 52 & 43 & fail & ---  & $\times$ \\
+59  & 58 & 21 & fail & ---  & $\times$ \\
+61  & 60 & 36 & ok   & ok   & $\checkmark$ \\
+67  & 66 & 6  & ok   & ok   & $\checkmark$ \\
+79  & 39 & 10 & ---  & ok   & $\checkmark$ \\
+83  & 82 & 31 & fail & ---  & $\times$ \\
+97  & 48 & 43 & fail & ok   & $\times$ \\
+101 & 100& 19 & fail & ---  & $\times$ \\
+103 & 51 & 9  & ---  & ok   & $\checkmark$ \\
+107 & 106& 17 & fail & ---  & $\times$ \\
+131 & 130& 7  & fail & ---  & $\times$ \\
+139 & 138& 110& ok   & fail & $\times$ \\
+149 & 148& 13 & fail & ---  & $\times$ \\
+163 & 162& 20 & ok   & fail & $\times$ \\
+173 & 172& 113& fail & ---  & $\times$ \\
+179 & 178& 19 & fail & ---  & $\times$ \\
+181 & 180& 146& ok   & fail & $\times$ \\
+193 & 96 & 90 & ok   & ok   & $\checkmark$ \\
+197 & 196& 83 & fail & ---  & $\times$ \\
+199 & 99 & 85 & ---  & ok   & $\checkmark$ \\
+\bottomrule
+\end{tabular}
+\caption{Primes $p<200$ with $-3\in\gen{2}\pmod p$. Column (A) is vacuous when $d_{p}$ is odd;
+column (B) is vacuous when $3\nmid d_{p}$.}
+\label{tab:sieve}
+\end{table}
+
+\section{Interlocking congruences}\label{sec:interlock}
+
+The local condition \eqref{eq:loc} globalises by the Chinese Remainder Theorem.
+
+\begin{proposition}\label{prop:crt}
+Let $m$ satisfy \eqref{eq:star} with prime factorisation $m=\prod_{i=1}^{r}p_{i}^{a_{i}}$. For
+each $i$, set $d_{i}=d_{p_{i}}$ and $k_{i}=\log_{2}(-3)\bmod p_{i}$, and put $t_{i}=m/p_{i}^{a_{i}}$.
+Then $t_{i}\equiv k_{i}+1\pmod{d_{i}}$ for every $i$, and consequently
+\[
+m\equiv p_{i}^{a_{i}}(k_{i}+1)\pmod{p_{i}^{a_{i}}d_{i}}
+\]
+for every $i$. By CRT, $m$ lies in a single residue class modulo
+$\lcm_{i}\!\big(p_{i}^{a_{i}}d_{i}\big)$.
+\end{proposition}
+
+\begin{proof}
+The first statement is Lemma~\ref{lem:local}. For the second, $m=p_{i}^{a_{i}}t_{i}$ and
+$t_{i}\equiv k_{i}+1\pmod{d_{i}}$, so $m\equiv p_{i}^{a_{i}}(k_{i}+1)\pmod{p_{i}^{a_{i}}d_{i}}$.
+\end{proof}
+
+For both known solutions one verifies Proposition~\ref{prop:crt} explicitly:
+\[
+m_{1}=61\cdot 228806497:\quad 228806497 \bmod 60 = 37 = k_{61}+1,
+\]
+\[
+m_{2}=67\cdot 44210291368986343:\quad 44210291368986343 \bmod 66 = 7 = k_{67}+1.
+\]
+
+\section{Two-prime structure}\label{sec:twoprime}
+
+Both known $m$ are products of two distinct primes. Specialising Proposition~\ref{prop:crt}
+gives a tight description of all such solutions, and the next remark shows that one half of the
+description is automatic.
+
+\begin{corollary}\label{cor:twoprime}
+Suppose $m=pq$ with primes $p<q$, $p,q\ne 2,3$. Then $m$ satisfies \eqref{eq:star} if and only
+if both
+\begin{equation}\label{eq:pair}
+q\equiv k_{p}+1\pmod{d_{p}},\qquad p\equiv k_{q}+1\pmod{d_{q}}
+\end{equation}
+hold, where $d_{p},d_{q}$ are the orders of $2$ and $k_{p},k_{q}$ the discrete logarithms of
+$-3$ to base $2$ in $\F_{p}^{\times}$ and $\F_{q}^{\times}$ respectively. In particular $q$ is a
+prime divisor of $2^{p-1}+3$ and $p$ is a prime divisor of $2^{q-1}+3$.
+\end{corollary}
+
+\begin{remark}[One-sidedness]\label{rem:onesided}
+The two conditions in \eqref{eq:pair} are not independent once $q$ is drawn from the prime
+factors of $N_{p}:=2^{p-1}+3$. Indeed, if $q\mid N_{p}$ then $2^{p-1}\equiv-3\pmod q$, and a
+short computation with Fermat's little theorem shows
+\[
+2^{pq-1}\equiv (2^{p-1})^{q}\cdot 2^{q-1}\equiv(-3)^{q}\cdot 1\equiv -3\pmod q,
+\]
+so the congruence modulo $q$ holds automatically. Equivalently, the second condition
+$p\equiv k_{q}+1\pmod{d_{q}}$ holds for \emph{every} prime factor $q$ of $N_{p}$. Hence
+\[
+\boxed{\,m=pq\ (p<q)\text{ solves }\eqref{eq:star}\iff q\mid 2^{p-1}+3\ \text{ and }\ q\equiv k_{p}+1\pmod{d_{p}}.\,}
+\]
+This makes the two-prime problem for a fixed smaller prime $p$ entirely a question about the
+prime factorisation of the single integer $N_{p}$, together with one residue test modulo
+$d_{p}$ ($<p$).
+\end{remark}
+
+This is the basis of an efficient algorithm: for each admissible small prime $p$, factor
+$N_{p}=2^{p-1}+3$, and for each prime factor $q>p$ test whether $q\equiv k_{p}+1\pmod{d_{p}}$.
+
+\section{Solutions with more prime factors}\label{sec:omega}
+
+Corollary~\ref{cor:twoprime} is the case $\omega(m)=2$. The same reduction works for any number
+of prime factors; it both clarifies the structure of hypothetical longer solutions and explains
+why only two-prime ones are known. Throughout, $m=p_{1}p_{2}\cdots p_{\omega}$ is squarefree with
+$p_{1}<p_{2}<\cdots<p_{\omega}$ distinct primes, $d_{i}=d_{p_{i}}$ and $k_{i}=\log_{2}(-3)\bmod
+p_{i}$. (By Section~\ref{sec:sqfree} every solution is squarefree at all primes below $1093$, so
+a repeated prime factor, if one ever occurs, must be $\ge 1093$; we return to this at the end.)
+
+\begin{proposition}[Squarefree solutions of any length]\label{prop:omega}
+Let $m=p_{1}\cdots p_{\omega}$ be squarefree with each $p_{i}\notin\{2,3\}$. Then
+$m\mid 2^{m-1}+3$ if and only if, for every $i$,
+\[
+-3\in\gen{2}\subseteq\F_{p_{i}}^{\times}\qquad\text{and}\qquad m\equiv k_{i}+1\pmod{d_{i}},
+\]
+the latter being equivalent to $\displaystyle\prod_{j\ne i}p_{j}\equiv k_{i}+1\pmod{d_{i}}$. In
+particular every $p_{i}$ is admissible.
+\end{proposition}
+
+\begin{proof}
+Since $m$ is squarefree, the CRT gives $m\mid 2^{m-1}+3$ iff $p_{i}\mid 2^{m-1}+3$ for every
+$i$. For fixed $i$, $2^{m-1}\equiv-3\pmod{p_{i}}$ holds iff $-3\in\gen{2}$ in $\F_{p_{i}}^{\times}$
+and $m-1\equiv k_{i}\pmod{d_{i}}$. As $d_{i}\mid p_{i}-1$ we have $p_{i}\equiv 1\pmod{d_{i}}$,
+hence $m\equiv\prod_{j\ne i}p_{j}\pmod{d_{i}}$, giving the reformulation. Conditions (A),(B) of
+Definition~\ref{def:adm} follow as in Theorem~\ref{thm:adm}.
+\end{proof}
+
+Thus a squarefree solution is exactly a set of admissible primes whose product lands
+simultaneously in the prescribed class $k_{i}+1$ modulo each $d_{i}$. By CRT this confines $m$ to
+one residue class modulo $\lcm_{i}d_{i}$ (Proposition~\ref{prop:crt}); the difficulty is that the
+unknown $m$ is forced to be the \emph{product} of the very primes defining the moduli. The
+two-prime reduction of Remark~\ref{rem:onesided} generalises verbatim: the condition at the
+largest prime is a divisibility, and the remaining ones are residue tests.
+
+\begin{corollary}[Recursive criterion]\label{cor:omega}
+Let $p_{1}<\cdots<p_{\omega}$ be admissible primes, put $P=p_{1}\cdots p_{\omega-1}=m/p_{\omega}$,
+and write $N_{P}=2^{P-1}+3$. Then $m=Pp_{\omega}$ solves \eqref{eq:star} if and only if
+\[
+p_{\omega}\mid N_{P}\qquad\text{and}\qquad m\equiv k_{i}+1\pmod{d_{i}}\quad(1\le i\le\omega-1).
+\]
+The congruence $m\equiv k_{\omega}+1\pmod{d_{\omega}}$ is automatic once $p_{\omega}\mid N_{P}$.
+\end{corollary}
+
+\begin{proof}
+The congruence at $p_{\omega}$ reads $P\equiv k_{\omega}+1\pmod{d_{\omega}}$ (since $m\equiv P
+\pmod{d_{\omega}}$), i.e.\ $2^{P-1}\equiv-3\pmod{p_{\omega}}$, i.e.\ $p_{\omega}\mid N_{P}$; this
+holds for every prime factor of $N_{P}$. The remaining $\omega-1$ congruences are
+Proposition~\ref{prop:omega}.
+\end{proof}
+
+This is an algorithm: to find every $\omega$-prime solution extending a fixed tuple
+$(p_{1},\dots,p_{\omega-1})$, factor the single integer $N_{P}=2^{P-1}+3$ and test each prime
+factor $p_{\omega}>p_{\omega-1}$ against the $\omega-1$ residue conditions modulo
+$d_{1},\dots,d_{\omega-1}$. Two points deserve emphasis. First, the smaller primes need
+\emph{not} themselves form a solution: solutions do not nest, so one cannot grow a long solution
+by extending a short one. Second, everything reduces to factoring $N_{P}$, and that is precisely
+where the method fails.
+
+\subsection{The computational barrier}
+The integer $N_{P}=2^{P-1}+3$ has about $0.301\,P$ decimal digits, and $P=p_{1}\cdots
+p_{\omega-1}$ is a product of admissible primes, hence grows super-exponentially with $\omega$.
+Even the smallest admissible primes $13,19,61,67,\dots$, which minimise $P$, give the sizes of
+Table~\ref{tab:growth}.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{cccl}
+\toprule
+$\omega$ & minimal $P=p_{1}\cdots p_{\omega-1}$ & digits of $N_{P}$ & feasibility \\
+\midrule
+$2$ & $13$ & $4$ & routine (broad search) \\
+$3$ & $13\cdot 19=247$ & $75$ & at the edge (one tuple) \\
+$4$ & $13\cdot 19\cdot 61=15067$ & $\approx 4{,}500$ & infeasible \\
+$5$ & $13\cdot 19\cdot 61\cdot 67=1{,}009{,}489$ & $\approx 3\times 10^{5}$ & infeasible \\
+\bottomrule
+\end{tabular}
+\caption{Smallest integer $N_{P}=2^{P-1}+3$ that must be factored to search for an
+$\omega$-prime solution.}
+\label{tab:growth}
+\end{table}
+
+So two prime factors is the only regime open to a broad search, three is reachable for a single
+tuple, and four or more is permanently beyond factorisation. Concretely, for three primes only
+the smallest admissible pair $(p_{1},p_{2})=(13,19)$ keeps $N_{P}$ tractable:
+\[
+N_{247}=2^{246}+3=307\cdot 41047\cdot r,\qquad r\ \text{a 67-digit prime},
+\]
+and none of $13\cdot 19\cdot p_{3}$ with $p_{3}\in\{307,41047,r\}$ satisfies the two residue
+conditions, so there is no three-prime solution with smaller pair $(13,19)$. Every other pair
+already pushes $N_{P}$ past $200$ digits, so a complete three-prime search---let alone
+$\omega\ge 4$---is not currently possible.
+
+\subsection{How many solutions, and how large?}
+Because the multi-prime regime is computationally invisible, the only guide is heuristic.
+Modelling $2^{m-1}+3\bmod m$ as equidistributed makes a squarefree $m$ with all prime factors
+admissible a solution with ``probability'' about $1/m$; when $d_{i}\approx p_{i}$ this agrees
+with the structural estimate $\prod_{i}1/d_{i}$. Summing over candidates with exactly $\omega$
+prime factors gives, for the number of $\omega$-prime solutions up to $X$,
+\[
+E_{\omega}(X)\ \approx\ \frac{1}{\omega!}\Bigl(\sum_{\substack{p\le X\\\text{admissible}}}
+\frac{1}{p}\Bigr)^{\!\omega}\ \approx\ \frac{(\delta\,\log\log X)^{\omega}}{\omega!},
+\]
+where $\delta$ is the (logarithmic) density of admissible primes, empirically
+$\delta\approx 0.15$. Hence
+\[
+\sum_{\omega\ge 2}E_{\omega}(X)\ \approx\ e^{\delta\log\log X}-1-\delta\log\log X
+\ =\ (\log X)^{\delta}-1-\delta\log\log X\ \xrightarrow[X\to\infty]{}\ \infty.
+\]
+Three conclusions follow, of which the third is the point. (i)~The total diverges, so the
+heuristic predicts \emph{infinitely many} solutions---but only as a minuscule power
+$(\log X)^{\delta}$ of $\log X$, so they are astronomically sparse. (ii)~The estimate is of the
+right order: at the scale of the known terms ($X\approx m_{2}$) it gives $\sum_{\omega\ge 2}
+E_{\omega}$ of order $10^{-1}$, so finding two solutions is consistent with the model to within
+its (considerable) crudeness; the structural refinement $\prod_{i}1/d_{i}$, which exceeds $1/m$
+when some order $d_{i}$ is small, raises the estimate toward the observed count. (iii)~At every
+reachable scale $\delta\log\log X<1$, so $E_{\omega}$ \emph{decreases} with $\omega$: two-prime
+solutions are heuristically the most common, and a solution with three or more prime factors is
+not expected until $X$ is of the order $\exp\!\bigl(\exp(c/\delta)\bigr)$---a number with
+thousands of digits or more. The two known solutions are two-prime both because two-prime
+solutions genuinely dominate at small heights and because, even were a longer solution to lie in
+range, exhibiting it would require factoring an $N_{P}$ of thousands of digits. Longer solutions
+are thus doubly hidden: too rare to meet in any searchable range, and walled off by
+factorisation when they do occur.
+
+\subsection{Non-squarefree \texorpdfstring{$m$}{m}}
+If $p^{a}\,\|\,m$ with $a\ge 2$, Proposition~\ref{prop:omega} must be read modulo $p^{a}$: the
+condition at $p$ becomes $2^{m-1}\equiv-3\pmod{p^{a}}$, governed by $\ord_{p^{a}}(2)$ and the
+discrete logarithm of $-3$ there, in the manner of Lemma~\ref{lem:sqfree}. Corollary
+\ref{cor:sqfree} forbids $a\ge 2$ for every prime $p<1093$, so a non-squarefree solution would
+have to involve a repeated prime $\ge 1093$; none is known, and the heuristic above, dominated by
+squarefree $m$, is unaffected.
+
+\section{Squarefreeness at small primes}\label{sec:sqfree}
+
+Both known solutions are squarefree. We now prove that this is forced at every non-Wieferich
+prime, modulo a single discrete-logarithm coincidence that we then verify never occurs below
+$1093$. Recall that $p$ is a \emph{Wieferich prime} (base $2$) if $2^{p-1}\equiv 1\pmod{p^{2}}$;
+the only such primes below $4\times 10^{3}$ are $1093$ and $3511$. For $p$ non-Wieferich one has
+$\ord_{p^{2}}(2)=p\,d_{p}$ (if $2^{d_{p}}\equiv 1\pmod{p^{2}}$ then $2^{p-1}\equiv 1\pmod{p^{2}}$,
+since $d_{p}\mid p-1$; the contrapositive gives the order $p\,d_{p}$).
+
+\begin{lemma}[Squarefreeness at a non-Wieferich prime]\label{lem:sqfree}
+Let $m$ satisfy \eqref{eq:star} and let $p$ be a prime with $p^{2}\mid m$. Suppose $p$ is not a
+Wieferich prime base $2$, so $D:=\ord_{p^{2}}(2)=p\,d_{p}$. Then $-3\in\gen{2}\subseteq
+(\Z/p^{2})^{\times}$ and, writing $\widetilde{k}_{p}:=\widetilde{\log_{2}}(-3)$ for its discrete
+logarithm modulo $p^{2}$,
+\[
+\widetilde{k}_{p}\equiv -1\pmod{p}.
+\]
+\end{lemma}
+
+\begin{proof}
+From $p^{2}\mid m\mid 2^{m-1}+3$ we get $2^{m-1}\equiv-3\pmod{p^{2}}$, so $-3\in\gen{2}$ modulo
+$p^{2}$ and
+\[
+m-1\equiv\widetilde{k}_{p}\pmod{D}.
+\]
+Since $p$ is non-Wieferich, $D=p\,d_{p}$, so $p\mid D$ and we may reduce the previous congruence
+modulo $p$:
+\[
+m-1\equiv\widetilde{k}_{p}\pmod{p}.
+\]
+But $p^{2}\mid m$ gives $m\equiv 0\pmod p$, hence $m-1\equiv-1\pmod p$. Therefore
+$\widetilde{k}_{p}\equiv-1\pmod p$.
+\end{proof}
+
+\begin{remark}
+The mechanism here differs from that of the sieve. Conditions (A),(B) of
+Definition~\ref{def:adm} arise from the cofactor $t=m/p^{a}$ being odd and coprime to $3$, which
+constrains $t$ only modulo $2$ and $3$; the classes modulo $4,9,\dots$ remain free
+(Section~\ref{sec:nosharp}). In Lemma~\ref{lem:sqfree} the modulus is the prime $p$ itself, and
+the order $D=p\,d_{p}$ ties the residue $m\bmod p$, which is $0$ since $p^{2}\mid m$, to
+$\widetilde{k}_{p}\bmod p$. This is a genuine constraint rather than a free residue class.
+\end{remark}
+
+\begin{corollary}\label{cor:sqfree}
+For every admissible prime $p<1093$ one has $\widetilde{k}_{p}\not\equiv-1\pmod p$. Consequently
+no solution $m$ of \eqref{eq:star} is divisible by $p^{2}$ for any prime $p<1093$; that is, every
+$m\in S_{-3}$ is squarefree at all primes below $1093$.
+\end{corollary}
+
+\begin{proof}
+If $p^{2}\mid m$ then $p\mid m$, so $p$ is admissible by Theorem~\ref{thm:adm}, and every
+admissible $p<1093$ is non-Wieferich. By Lemma~\ref{lem:sqfree} (and noting that if $-3\notin
+\gen{2}$ modulo $p^{2}$ then $p^{2}\nmid m$ outright), divisibility by $p^{2}$ would force
+$\widetilde{k}_{p}\equiv-1\pmod p$. A direct computation of the discrete logarithm
+$\widetilde{k}_{p}$ for each of the $39$ admissible primes $p<1093$ shows
+$\widetilde{k}_{p}\not\equiv-1\pmod p$ in every case, a contradiction.
+\end{proof}
+
+Table~\ref{tab:sqfree} records $\widetilde{k}_{p}\bmod p$ for the small admissible primes; the
+value $-1\bmod p=p-1$ never appears.
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{rrrr}
+\toprule
+$p$ & $d_{p}$ & $\widetilde{k}_{p}\bmod p$ & $-1\bmod p$ \\
+\midrule
+13  & 12  & 7   & 12  \\
+19  & 18  & 6   & 18  \\
+61  & 60  & 19  & 60  \\
+67  & 66  & 35  & 66  \\
+79  & 39  & 7   & 78  \\
+103 & 51  & 66  & 102 \\
+193 & 96  & 7   & 192 \\
+199 & 99  & 35  & 198 \\
+211 & 210 & 186 & 210 \\
+\bottomrule
+\end{tabular}
+\caption{For small admissible primes, the reduced discrete logarithm
+$\widetilde{k}_{p}=\widetilde{\log_{2}}(-3)\bmod p^{2}$ taken modulo $p$, against $-1\bmod p$.
+Equality (which would permit $p^{2}\mid m$) never occurs; verified for all admissible $p<1093$.}
+\label{tab:sqfree}
+\end{table}
+
+A full proof of squarefreeness would also require a uniform treatment of large primes and a
+separate analysis of the Wieferich primes $1093$ and $3511$; the present argument settles only
+the primes below $1093$.
+
+\section{No prime-power sharpening of the sieve}\label{sec:nosharp}
+
+It is natural to ask whether replacing the moduli $2,3$ in conditions (A),(B) by higher prime
+powers $4,8,\dots$ or $9,27,\dots$ yields additional exclusions. It does not.
+
+\begin{proposition}\label{prop:nosharp}
+The only constraints on $t=m/p^{a}$ available in isolation are $t$ odd and $3\nmid t$. Reducing
+the local congruence \eqref{eq:loc} modulo any power $2^{e}$ or $3^{f}$ produces no exclusion
+beyond conditions \textup{(A)} and \textup{(B)}.
+\end{proposition}
+
+\begin{proof}
+Suppose $2^{e}\mid d$. Then \eqref{eq:loc} forces $t\equiv k+1\pmod{2^{e}}$. The constraint
+$t$ odd permits exactly the odd residues modulo $2^{e}$, and the forced value $k+1$ fails to be
+odd precisely when $k+1$ is even, i.e.\ when $k$ is odd. This is condition (A) (which already
+applies as soon as $2\mid d$). Higher $e$ add nothing, since oddness is a condition modulo $2$
+only. Similarly, if $3^{f}\mid d$ then $t\equiv k+1\pmod{3^{f}}$, and $3\nmid t$ permits exactly
+the residues coprime to $3$; the forced value $k+1$ fails to be coprime to $3$ precisely when
+$3\mid k+1$, i.e.\ $k\equiv 2\pmod 3$, which is condition (B). Higher $f$ add nothing.
+\end{proof}
+
+We verified computationally that no admissible prime below $3000$ is removed by any mod-$4$,
+mod-$8$, mod-$9$, or mod-$27$ refinement, consistent with Proposition~\ref{prop:nosharp}. Any
+genuine sharpening of the sieve must therefore come from \emph{interactions between distinct
+prime factors}, i.e.\ from the interlocking congruences of Proposition~\ref{prop:crt}, rather
+than from a single local modulus.
+
+\section{Computational evidence}\label{sec:comp}
+
+\subsection{Direct search}
+The bound $m\le 10^{15}$ is the range exhaustively verified in OEIS A245728~\cite{oeis}; the only
+solution there is $m_{1}$. An independent brute-force test over all odd $m\le 10^{7}$ with
+$3\nmid m$ reproduces no solution in that range, agreeing with the database.
+
+\subsection{Two-prime search via factorisation of \texorpdfstring{$2^{p-1}+3$}{2^(p-1)+3}}
+By Remark~\ref{rem:onesided}, for each admissible smaller prime $p$ it suffices to factor
+$N_{p}=2^{p-1}+3$ and test the prime factors $q>p$ against $q\equiv k_{p}+1\pmod{d_{p}}$. We
+carried this out for every admissible $p\le 499$:
+\begin{itemize}[nosep]
+\item For $p\in\{13,19,61,67,79,103,193,199,211,271,307,373,463,499\}$ the number $N_{p}$ is
+fully factored (by trial division, Pollard $\rho$, $p-1$, and ECM). The complete list of
+two-prime solutions with smaller prime in this set is exactly $\{m_{1},m_{2}\}$, arising at
+$p=61$ and $p=67$.
+\item For $p\in\{367,439,487\}$ a composite cofactor of $109$, $132$, and $147$ decimal digits
+respectively remains unfactored; in each case all prime factors found so far yield no solution,
+and (each residual cofactor having been checked to be composite, not a single large prime) the
+possibility of a further two-prime $m$ involving these $p$ is left open.
+\end{itemize}
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lll}
+\toprule
+smaller prime $p$ & $N_{p}=2^{p-1}+3$ status & solution \\
+\midrule
+$13,19$ & full & none \\
+$61$ & full & $m_{1}=61\cdot 228806497$ \\
+$67$ & full & $m_{2}=67\cdot 44210291368986343$ \\
+$79,103,193,199,211,271,307,373,463,499$ & full & none \\
+$367,439,487$ & partial ($109$--$147$-digit cofactor) & open \\
+\bottomrule
+\end{tabular}
+\caption{Two-prime search over admissible smaller primes $p\le 499$. By Theorem~\ref{thm:adm}
+only admissible primes can occur as a smaller factor, so non-admissible primes require no
+factorisation.}
+\label{tab:search}
+\end{table}
+
+A search for solutions with three or more prime factors is governed by the recursive criterion
+of Section~\ref{sec:omega}; only the single tuple $(13,19)$ is within reach, and it yields no
+three-prime solution.
+
+\section{Is \texorpdfstring{$S_{-3}$}{S(-3)} finite?}\label{sec:finite}
+
+This is the heart of ``fully solving'' the problem, and it is open. The available heuristics---a
+structural estimate for two-prime solutions and a global density argument---point the same way,
+toward infinitude; we give both and then say what a proof would require.
+
+\paragraph{The two-prime estimate.}
+For admissible $p$, the number $N_{p}=2^{p-1}+3$ has about $\log\log N_{p}\asymp\log p$ distinct
+prime factors, and a given one lies in the class required modulo $d_{p}$ with ``probability''
+about $1/d_{p}$. The expected number of two-prime solutions with smaller prime below $X$ is thus
+of order $\sum_{p<X,\ \mathrm{adm}}(\log p)/d_{p}$, and this \emph{diverges}. Since $d_{p}\mid p-1$
+we have $d_{p}<p$, hence $(\log p)/d_{p}>(\log p)/p$; assuming, as the data strongly support, that
+the admissible primes have positive density $\delta$, Mertens' first theorem gives
+\[
+\sum_{\substack{p<X\\\text{admissible}}}\frac{\log p}{d_{p}}\ \ge\
+\sum_{\substack{p<X\\\text{admissible}}}\frac{\log p}{p}\ \sim\ \delta\log X\ \xrightarrow[X\to\infty]{}\ \infty .
+\]
+The factor $\log p$ in the numerator is what fixes the rate at $\log X$: the bare sum $\sum
+1/d_{p}$, lower-bounded by $\sum 1/p$, diverges only at the slower rate $\log\log X$ (numerically
+$\sum_{p<X,\ \mathrm{adm}}1/d_{p}$ creeps from about $0.24$ at $X=200$ to $0.53$ at $X=5\cdot
+10^{4}$). So the two-prime heuristic predicts \emph{infinitely many} two-prime solutions, not
+finiteness. It is moreover well calibrated: $\sum_{p<X,\ \mathrm{adm}}(\log p)/d_{p}$ is about
+$1.7$ at $X=2000$ and $2.4$ at $X=10^{4}$, consistent with the two known solutions, whose smaller
+primes are $61$ and $67$.
+
+\paragraph{A global density heuristic.}
+Model $2^{m-1}+3\bmod m$ as roughly equidistributed; then $m$ is a solution with ``probability''
+about $1/m$, and $\sum_{m\le X}1/m\sim\log X\to\infty$. A divergent expectation predicts
+\emph{infinitely many} solutions. This is precisely the (correct) heuristic for the closely
+analogous Fermat-pseudoprime problem $m\mid 2^{m-1}-2$, for which infinitely many solutions are
+known (Erd\H{o}s). The inhomogeneous shift ($-3$ in place of $-1$) changes the combinatorics of
+how prime factors glue together but not the divergence of the expectation.
+
+Both estimates thus point the same way. The two-prime sum already diverges, and the global
+heuristic is dominated by solutions with \emph{many} prime factors, whose expected distribution
+(Section~\ref{sec:omega}) also diverges; together they favour an infinite $S_{-3}$ whose elements
+beyond $m_{2}$ are many-prime integers far beyond any search. On this view the two known terms
+being two-prime reflects the limits of factorisation, not the true distribution of solutions.
+
+A proof of \emph{finiteness} would need an upper bound, uniform in $p$, on the number of prime
+factors of $2^{p-1}+3$ lying in prescribed arithmetic progressions, which is well beyond current
+analytic number theory. A proof of \emph{infinitude} would need a Carmichael-style construction
+producing solutions to order; the homogeneous case $a=-1$ admits the relevant root-of-unity
+structure (and is settled in the opposite direction, $S_{-1}=\varnothing$), but for $a=-3$ the
+varying targets $k_{q}$ obstruct the standard construction and none is known. Both directions are
+presently out of reach.
+
+\section{Open questions}
+
+\begin{enumerate}[label=\arabic*.]
+\item \emph{Is $S_{-3}$ finite?} This remains open; the heuristics of Section~\ref{sec:finite}
+point toward an infinite, though computationally unreachable, solution set.
+\item \emph{Can the admissibility sieve be sharpened locally?} No: Proposition~\ref{prop:nosharp}
+shows that prime-power moduli yield nothing further, so any improvement must be global.
+\item \emph{Is every $m\in S_{-3}$ squarefree?} This is open in general;
+Corollary~\ref{cor:sqfree} settles it at every prime below $1093$, and a uniform treatment of
+large primes, together with a separate analysis of the Wieferich primes $1093,3511$, would be
+needed for the full statement.
+\item \emph{The same questions for $a\in\{-5,-7,\dots\}$.} The proof of Theorem~\ref{thm:minus1}
+uses critically that $-1$ is a root of unity; for general $a$ the $2$-adic argument fails and the
+qualitative behaviour of $S_{a}$ is unclear.
+\end{enumerate}
+
+\appendix
+
+\section{Computational programs}\label{app:programs}
+The programs used for the computations reported here---the direct search, the two-prime
+factoring search via $N_{p}=2^{p-1}+3$, and the supporting order and discrete-logarithm
+routines---are available at
+\begin{center}
+\url{https://github.com/RobinCodes/Projects/tree/main/Divisibility%20problem}.
+\end{center}
+The factorisations of Table~\ref{tab:search}, the discrete-logarithm verification underlying
+Corollary~\ref{cor:sqfree}, and the sieve data of Table~\ref{tab:sieve} were carried out with
+\texttt{sympy}.
+
+\section{Note on the use of artificial intelligence}\label{app:ai}
+This work was prepared with substantial assistance from an artificial-intelligence system, and
+most of the results presented here---the admissibility sieve, the interlocking-congruence
+description, the two-prime reduction, the squarefreeness analysis, and the computations of
+Section~\ref{sec:comp}---were created with such assistance. We do not specify the particular
+system used; readers seeking further detail about the methods are invited to contact the authors:
+Robin Rovenszky (\texttt{robincodes} on Discord) and notxxdog (\texttt{.notxxdog} on Discord).
+
+No result here is accepted on the basis of machine assertion. Every definition, lemma, and proof
+is stated so as to be checkable by hand, and every computational claim is reproducible by
+re-running the programs of Appendix~\ref{app:programs}.
+
+\begin{thebibliography}{9}
+\bibitem{oeis} OEIS Foundation Inc.\ (2024), Entry A245728 in \emph{The On-Line Encyclopedia of
+Integer Sequences}, \url{https://oeis.org/A245728}.
+\end{thebibliography}
+
+\end{document}

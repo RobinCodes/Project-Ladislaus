@@ -1,0 +1,460 @@
+\documentclass[11pt]{article}
+
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{mathtools}
+\usepackage[colorlinks=true,linkcolor=blue,citecolor=blue]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
+\newtheorem{lemma}{Lemma}
+\newtheorem{corollary}{Corollary}
+\newtheorem{conjecture}{Conjecture}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\newtheorem{construction}{Construction}
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+\newtheorem{question}{Open Problem}
+
+\DeclareMathOperator{\val}{val}
+\DeclareMathOperator{\len}{len}
+\newcommand{\base}[2]{(#1)_{#2}}
+\newcommand{\good}{\textsf{good}}
+\newcommand{\bad}{\textsf{bad}}
+\newcommand{\NN}{\mathbb{N}}
+\newcommand{\QQ}{\mathbb{Q}}
+\newcommand{\ZZ}{\mathbb{Z}}
+\newcommand{\Lbb}{L_{b,B}}
+\newcommand{\Sbb}{S_{b,B}}
+\newcommand{\hbb}{h_{b,B}}
+
+\title{\bfseries Substring Avoidance across Bases:\\[2pt]
+\large How long can a doubling sequence run before it is forced to display a pattern?}
+\author{}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Start at $1$ and repeatedly apply $x\mapsto bx+c$ with a digit $c\in\{0,\dots,b-1\}$; this generates every positive integer exactly once, along its base-$b$ expansion. Fix a target base $B$ and a digit-string $n$. We ask how long such a generation can proceed while the \emph{base-$B$} representation of every value produced avoids $n$ as a contiguous factor. For $(b,B)=(2,10)$ this is precisely the longest binary string, with no leading zero, all of whose prefixes read in decimal avoid $n$.
+
+We separate three quantities. The literal \emph{shortest} string reaching a value that contains $n$ is shown to be a triviality of base conversion (Proposition~\ref{prop:short}). The substantive objects are the longest avoider $\Lbb(n)$ and its true dual, the shortest \emph{maximal} avoider $\hbb(n)$. We give exact data for $(2,10)$ with single-digit $n$, and our main structural result is a dichotomy governed by whether $\log b/\log B$ is rational. When $b$ and $B$ are multiplicatively dependent we exhibit explicit eventually-periodic words proving $\Lbb=\infty$ (Theorem~\ref{thm:dep}); when they are independent we prove the opposite---$\Lbb(n)<\infty$ for every $n$ (Theorem~\ref{thm:dichotomy})---by showing that the leading base-$B$ digits of any chain equidistribute and hence display every pattern. This completes a dichotomy governed entirely by whether $\log b/\log B$ is rational, and exposes the finiteness as an \emph{arithmetic} phenomenon (incommensurable bases), in deliberate contrast to Thue--Morse-style word avoidance.
+
+Finally we study a self-referential variant in which each term must avoid all of its own predecessors (Section~\ref{sec:variant}). A short reduction (Proposition~\ref{prop:variant}) ties its finiteness to the same avoidance question, single-digit starts are solved exactly, and we isolate the accumulating self-constraints---rather than avoidance of the start---as the mechanism that bounds the sequence.
+\end{abstract}
+
+\section{The generation tree}
+
+Fix integers $b,B\ge 2$. We call $b$ the \emph{generation base} and $B$ the \emph{reading base}.
+
+\begin{definition}
+The \emph{generation tree} $T_b$ is the rooted infinite tree with root $1$ in which each node $x$ has the $b$ children $bx,\,bx+1,\dots,bx+(b-1)$. A \emph{generation string} of length $k$ is a path $x_1,x_2,\dots,x_k$ from the root, equivalently a word $d_1d_2\cdots d_k$ over $\{0,\dots,b-1\}$ with $d_1\neq 0$ and $x_i=\val(d_1\cdots d_i)=\sum_{j\le i} d_j\,b^{\,i-j}$.
+\end{definition}
+
+Thus generation strings are exactly the base-$b$ representations of positive integers, and a length-$k$ path corresponds to a $k$-digit base-$b$ number. For $b=2$ the two operations are $x\mapsto 2x$ (append $0$) and $x\mapsto 2x+1$ (append $1$): the ``doubling'' process of the title.
+
+Let $\rho_B(x)\in\{0,\dots,B-1\}^{*}$ denote the base-$B$ digit word of $x$ (most significant digit first, no leading zero for $x\ge 1$). A \emph{pattern} is a nonempty word $n=n_1\cdots n_\ell$ over $\{0,\dots,B-1\}$ with $n_1\neq 0$; we identify it with the integer $\nu:=\base{n}{B}=\sum_{i}n_i B^{\,\ell-i}$. Patterns are exactly the base-$B$ representations of positive integers, matching the convention $n\in\ZZ_{\ge1}$.
+
+\begin{definition}
+An integer $x\ge 1$ is \emph{good} (for $n,B$) if $n$ is not a factor of $\rho_B(x)$, and \emph{bad} otherwise. A generation string $x_1,\dots,x_k$ is \emph{valid} if every $x_i$ is good.
+\end{definition}
+
+Because the parent of $x$ in $T_b$ is $\lfloor x/b\rfloor$, validity of a path is equivalent to all of its ancestors being good. Hence a node $x$ lies on some valid path iff $x$ and all of $\lfloor x/b\rfloor,\lfloor x/b^2\rfloor,\dots,1$ are good. The valid nodes form a subtree of $T_b$ rooted at $1$ (assuming $1$ is good), which we call the \emph{avoidance tree} $A=A_{b,B}(n)$.
+
+\begin{definition}
+We study three quantities.
+\begin{enumerate}[label=\textup{(\roman*)},leftmargin=2.2em]
+\item $\Lbb(n)=\sup\{k:\text{a valid string of length }k\text{ exists}\}\in\NN\cup\{\infty\}$, the \emph{longest avoider}: the height of $A$.
+\item $\Sbb(n)=\min\{k:\text{a generation string of length }k\text{ ends at a bad value}\}$, the \emph{shortest reach}.
+\item $\hbb(n)=\min\{k:\text{a maximal valid string of length }k\text{ exists}\}$, the \emph{shortest maximal avoider}, where a valid string is \emph{maximal} if none of its $b$ one-letter extensions is valid (equivalently the terminal node is a leaf of $A$).
+\end{enumerate}
+\end{definition}
+
+For the motivating instance $(b,B)=(2,10)$, $\Lbb(n)$ is the length of the longest binary string with no leading zero whose every prefix, written in decimal, avoids $n$. For example $\Lbb(1)=0$ (the prefix $\rho_{10}(1)=\texttt{1}$ already contains $\texttt{1}$), while $\Lbb(2)=6$ is witnessed by $\texttt{111100}=\val^{-1}(60)$ with prefix values $1,3,7,15,30,60$, none containing the digit $\texttt{2}$.
+
+\section{The shortest problem is base conversion}
+
+We first dispatch the shortest-reach quantity, which turns out to carry no arithmetic content; the genuinely dual notion is $\hbb$, treated in Section~\ref{sec:dual}.
+
+\begin{lemma}[Reachability]\label{lem:reach}
+Every integer $m\ge 1$ is the value of exactly one generation string, namely $\rho_b(m)$, whose length is $\lfloor\log_b m\rfloor+1$.
+\end{lemma}
+
+\begin{proof}
+Immediate: $T_b$ realizes the standard base-$b$ numeration, and the number of base-$b$ digits of $m$ is $\lfloor\log_b m\rfloor+1$.
+\end{proof}
+
+\begin{proposition}[Shortest reach]\label{prop:short}
+For every admissible pattern $n$,
+\[
+\Sbb(n)=\lfloor\log_b \nu\rfloor+1,\qquad \nu=\base{n}{B}.
+\]
+Moreover $\Sbb(n)$ is exactly the depth of the shallowest bad node, and that node is reachable through good ancestors.
+\end{proposition}
+
+\begin{proof}
+The smallest bad integer is $\nu$ itself. Indeed, if $m$ is bad then $\rho_B(m)$ contains $n$, so either $\len_B(m)=\ell$ and $\rho_B(m)=n$, giving $m=\nu$, or $\len_B(m)>\ell$ and $m\ge B^{\ell}>\nu$ (as $\nu<B^{\ell}$). By Lemma~\ref{lem:reach} the unique generation string reaching $\nu$ has length $\lfloor\log_b\nu\rfloor+1$, and any value at depth $d\le \lfloor\log_b\nu\rfloor$ is $<b^{d}\le\nu$, hence good. Thus no bad node occurs above this depth, the bound is attained, and every proper ancestor of $\nu$ (being $<\nu$) is good.
+\end{proof}
+
+So ``reach a value containing $n$ in the fewest bits'' is solved by writing $n$ in base $B$, taking its integer value $\nu$, and counting its base-$b$ digits: for $(2,10)$ one simply has $\Sbb(n)=\lfloor\log_2 n\rfloor+1$, the bit-length of $n$. Proposition~\ref{prop:short} also pinpoints the contrast that makes Section~\ref{sec:dual} interesting: $\Sbb$ is the first depth at which one \emph{can} hit $n$, whereas $\hbb$ is the first depth at which one is \emph{forced} to.
+
+\section{The longest avoider and the role of the bases}
+
+\subsection{The same base: infinite by word combinatorics}
+
+\begin{theorem}[Same base]\label{thm:same}
+Let $b=B$. A generation string is valid iff its underlying base-$b$ word avoids $n$ as a factor. Consequently $\Lbb[b,b](n)=\infty$ for every admissible pattern $n$, with the single exception $(b,n)=(2,\texttt{1})$, where $\Lbb[2,2](\texttt{1})=0$.
+\end{theorem}
+
+\begin{proof}
+When $B=b$ the value $x_i=\val(d_1\cdots d_i)$ has base-$b$ word exactly $d_1\cdots d_i$ (no leading zero, as $d_1\neq0$). Hence $x_i$ is good iff the prefix $d_1\cdots d_i$ avoids $n$, and the path is valid iff every prefix---equivalently the whole word---avoids $n$. Thus $\Lbb[b,b](n)=\infty$ iff there is an infinite word over $\{0,\dots,b-1\}$ with nonzero first letter avoiding the factor $n$.
+
+Such a word exists in all cases but one. If $n$ contains two distinct letters, the constant word $a^{\infty}$ for any $a\in\{1,\dots,b-1\}$ avoids it. If $n=d^{\ell}$ is a power of a single letter $d$: when some nonzero letter $a\neq d$ exists (always, unless $b=2$ and $d=1$) the word $a^{\infty}$ contains no $d$ at all and so avoids $n$; when $b=2,d=1$ and $\ell\ge 2$, the word $\texttt{1}\,\texttt{0}^{\infty}$ has a single $\texttt{1}$ and avoids $\texttt{1}^{\ell}$. The remaining case $b=2,\,n=\texttt{1}$ forces the (necessarily nonzero) leading digit to be the forbidden letter, so no nonempty valid string exists and $\Lbb[2,2](\texttt{1})=0$.
+\end{proof}
+
+\subsection{Data for $(b,B)=(2,10)$}
+
+For single-digit $n$ the avoidance tree $A_{2,10}(n)$ is finite, and an exhaustive breadth-first traversal to extinction both computes $\Lbb(n)$ and \emph{certifies} finiteness for that $n$. Table~\ref{tab:2-10} lists the results together with the (trivial) shortest reach, the shortest maximal avoider of Section~\ref{sec:dual}, and a witnessing longest string.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{cccccl}
+\toprule
+$n$ & $\Sbb(n)$ & $\hbb(n)$ & $\Lbb(n)$ & terminal value of a longest avoider \\
+\midrule
+$1$ & $1$ & $0$  & $0$  & --- (root already bad) \\
+$2$ & $2$ & $4$  & $6$  & $60=\val(\texttt{111100})$ \\
+$3$ & $2$ & $5$  & $8$  & $160$ \\
+$4$ & $3$ & $5$  & $11$ & $2000$ \\
+$5$ & $3$ & $5$  & $10$ & $768$ \\
+$6$ & $3$ & $5$  & $18$ & $182857$ \\
+$7$ & $3$ & $6$  & $32$ & $3\,360\,819\,200$ \\
+$8$ & $4$ & $6$  & $22$ & $4\,095\,999$ \\
+$9$ & $4$ & $6$  & $56$ & $70\,465\,683\,456\,000\,000$ \\
+\bottomrule
+\end{tabular}
+\caption{The three quantities for $(b,B)=(2,10)$ and single-digit $n$. Here $\Sbb(n)=\lfloor\log_2 n\rfloor+1$ is the bit-length of $n$ (Proposition~\ref{prop:short}). The longest avoider for $n=8$ rides the ladder $\dots\,7999\to15999\to31999\to\dots\to4{,}095{,}999$, after which every double contains an $\texttt{8}$.}
+\label{tab:2-10}
+\end{table}
+
+The sequence $\bigl(\Lbb[2,10](n)\bigr)_{n\ge1}=0,6,8,11,10,18,32,22,56,\dots$ does not appear in the OEIS. We stress that each entry is a finiteness statement for one specific $n$; the traversal says nothing uniform, a point we return to in Section~\ref{sec:indep}.
+
+\subsection{Multiplicative dependence forces infinitude}
+
+We now turn to $b\neq B$. The decisive invariant is whether $\log b/\log B$ is rational. For integers $b,B\ge2$ this is equivalent to the existence of $p,q\ge1$ with $b^{q}=B^{p}$, and by unique factorization to
+\[
+b=c^{s},\quad B=c^{t}\qquad\text{for some integer }c\ge 2\text{ and }s,t\ge1;
+\]
+we then call $b,B$ \emph{multiplicatively dependent}. Otherwise they are \emph{independent} (e.g.\ $2$ and $10$, since $\log_{10}2\notin\QQ$).
+
+In the dependent case both numerations are block recodings of base $c$: a base-$b$ digit is a block of $s$ base-$c$ digits, and a base-$B$ digit is a block of $t$ base-$c$ digits. This is enough to construct explicit infinite avoiders.
+
+\begin{lemma}[Repunit avoider]\label{lem:repunit}
+Let $b=c^{s}$, $B=c^{t}$. Consider the generation string $u^{\infty}$ where $u\in\{0,\dots,b-1\}$ is the base-$b$ digit whose base-$c$ block is $\underbrace{1\cdots1}_{s}$; that is, the value after $j$ generation steps is the base-$c$ repunit $R_{js}=\frac{c^{js}-1}{c-1}$. Then every base-$B$ digit occurring in any of these values lies in the finite set
+\[
+\mathcal R_t:=\Bigl\{\,R_r=\tfrac{c^{r}-1}{c-1}\ :\ 1\le r\le t\,\Bigr\}.
+\]
+\end{lemma}
+
+\begin{proof}
+$R_{js}$ has base-$c$ word $\underbrace{1\cdots1}_{js}$. Grouping it into $t$-blocks from the least significant end yields full blocks $\underbrace{1\cdots1}_{t}$, of base-$B$ digit value $R_t$, and (if $t\nmid js$) one leading partial block $\underbrace{1\cdots1}_{r}$ with $r=js\bmod t\in\{1,\dots,t-1\}$, of value $R_r$. Hence all base-$B$ digits lie in $\{R_1,\dots,R_t\}=\mathcal R_t$.
+\end{proof}
+
+\begin{theorem}[Dependent $\Rightarrow$ infinite]\label{thm:dep}
+If $b,B\ge2$ are multiplicatively dependent, then there is an admissible pattern $n$ with $\Lbb(n)=\infty$.
+\end{theorem}
+
+\begin{proof}
+Write $b=c^{s},B=c^{t}$. Suppose first $c^{t}>t+1$ (this excludes only $c=2,t=1$). The set $\mathcal R_t$ of Lemma~\ref{lem:repunit} has at most $t$ elements, all positive, while there are $B-1=c^{t}-1>t$ nonzero base-$B$ digits; hence some nonzero digit $d\notin\mathcal R_t$ exists. Take $n=[d]$, the single digit $d$. By Lemma~\ref{lem:repunit} the generation string $u^{\infty}$ never produces the digit $d$, so every prefix is good---in particular the root value $R_s\in\mathcal R_t$ is good---and $u^{\infty}$ is an infinite valid string. Thus $\Lbb(n)=\infty$.
+
+The sole remaining case is $c=2,t=1$, i.e.\ $B=2$ and $b=2^{s}$. Take $n=\texttt{11}$. The binary word $(\texttt{10})^{\infty}$ contains no factor $\texttt{11}$; it is realizable as a base-$2^{s}$ generation string (its $s$-bit blocks form a fixed periodic base-$2^{s}$ digit sequence), and its root prefix $\texttt{10}$ is good. Hence $\Lbb(\texttt{11})=\infty$.
+\end{proof}
+
+\begin{remark}[Two flavours of infinitude]
+Theorem~\ref{thm:dep} produces a \emph{thin} infinite avoider---a single periodic path. The full avoidance tree may be thin or thick. For $(b,B,n)=(2,4,\texttt{2})$ the only survivors are essentially the all-ones path $\texttt{1}^{\infty}$, whose values $2^{k}-1$ have base-$4$ digits in $\{\texttt{1},\texttt{3}\}=\mathcal R_2$ (here $c=2,t=2$), so the breadth-first frontier collapses to a single node at every large depth. For $(2,4,\texttt{3})$, by contrast, validity is the condition ``no aligned binary block $\texttt{11}$,'' the surviving strings are exponentially many (the frontier passes $3.5\times10^{6}$), and the avoider $(\texttt{10})^{\infty}$ of Theorem~\ref{thm:dep} is just one path among the throng.
+\end{remark}
+
+This thin-versus-thick contrast is not accidental: in the dependent case the whole problem is finite-state, and both flavours are read off a single automaton.
+
+\begin{theorem}[The dependent case is automatic]\label{thm:auto}
+Let $b=g^{s}$ and $B=g^{t}$ for integers $g\ge2$, $s,t\ge1$. Then $\{v\ge1:\rho_B(v)\text{ avoids }n\}$ is a $b$-recognizable set of integers. Consequently:
+\begin{enumerate}\itemsep1pt
+\item[(i)] the avoidance tree $A_{b,B}(n)$ is generated by a finite automaton, and $\Lbb(n)\in\{0,1,2,\dots\}\cup\{\infty\}$ is \emph{computable};
+\item[(ii)] $\Lbb(n)=\infty$ iff that automaton has a directed cycle of live states reachable from the root;
+\item[(iii)] the number of valid strings of length $k$ grows polynomially or exponentially in $k$, according as the live sub-automaton is cycle-disjoint (a thin path) or contains a branching cycle (an exponential frontier).
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}[Proof sketch]
+A base-$b$ digit is a block of $s$ base-$g$ digits and a base-$B$ digit is a block of $t$ of them, so appending a base-$b$ digit ($v\mapsto bv+c$) and grouping into base-$B$ are both finite-state recodings of the base-$g$ digit stream. The pattern $n$ corresponds to a fixed base-$g$ word of length $\ell t$ to be matched at positions $\equiv0\ (\mathrm{mod}\ t)$; an automaton reading base-$g$ digits and tracking (a) the position modulo $t$, (b) the Aho--Corasick state of that word, and (c) a ``seen'' flag is finite. This is the standard inter-recognizability of bases that are powers of a common base, so the avoiding set is $g$-, hence $b$-, recognizable. A recognizable set's defining DFA makes the longest root-path, its finiteness, and its growth type decidable by inspection of the reachable live strongly connected components.
+\end{proof}
+
+This is exactly why the multiplicatively dependent regime is word-combinatorial---and why finiteness there is decidable, in contrast to the genuinely arithmetic independent case below.
+
+\subsection{Independence forces finiteness: the dichotomy theorem}\label{sec:indep}
+
+Every multiplicatively \emph{independent} instance is finite (Table~\ref{tab:cross} shows samples), in sharp contrast to the dependent cases. We now \emph{prove} this, completing the dichotomy. The mechanism is the distribution of \emph{leading} digits.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{llc l}
+\toprule
+$(b,B)$ & pattern $n$ & dependent? & $\Lbb(n)$ \\
+\midrule
+$(2,3)$  & \texttt{2}    & no ($\log_3 2\notin\QQ$) & $2$ \\
+$(2,3)$  & \texttt{22}   & no & $12$ \\
+$(3,10)$ & \texttt{7}    & no & $20$ \\
+$(2,4)$  & \texttt{2}    & yes ($4=2^{2}$) & $\infty$ \quad(avoider $\texttt{1}^{\infty}$) \\
+$(2,4)$  & \texttt{3}    & yes & $\infty$ \quad(avoider $(\texttt{10})^{\infty}$) \\
+$(2,8)$  & \texttt{5}    & yes ($8=2^{3}$) & $\infty$ \\
+$(3,9)$  & \texttt{5}    & yes ($9=3^{2}$) & $\infty$ \\
+\bottomrule
+\end{tabular}
+\caption{Finiteness tracks multiplicative independence of the bases.}
+\label{tab:cross}
+\end{table}
+
+The key is that the choices in a chain cannot steer its \emph{leading} digits, which are governed by an irrational rotation and therefore equidistribute.
+
+\begin{theorem}[Leading-block occurrence]\label{thm:leading}
+Let $b,B\ge2$ with $\theta:=\log_B b\notin\QQ$, and let $w$ be a nonempty base-$B$ word with nonzero first digit, length $\ell$ and value $\nu=(w)_B$. Then for \emph{every} chain $x_0,x_1,\dots$ with $x_{k+1}\in\{bx_k,\dots,bx_k+(b-1)\}$, the base-$B$ representation of $x_k$ has $w$ as its leading $\ell$ digits for infinitely many $k$. In particular every infinite such chain contains $w$, so $L^{*}_{b,B}(w)<\infty$, and a fortiori $\Lbb(n)<\infty$ for $n=(w)_B$.
+\end{theorem}
+
+\begin{proof}
+\emph{A chain is a single real number.} Since $x_{k+1}/b^{k+1}=x_k/b^{k}+c_k/b^{k+1}$ with $c_k\in\{0,\dots,b-1\}$, the sequence $x_k/b^{k}$ is nondecreasing and bounded above by $x_0+1$, hence converges to some real $\alpha\ge x_0\ge1$. Writing $\rho_k:=\log_B(x_k/b^{k})-\log_B\alpha$, we have $\rho_k\to0$ and
+\[
+\log_B x_k \;=\; k\theta+\log_B\alpha+\rho_k .
+\]
+
+\emph{Leading digits are a mantissa condition.} An integer $N$ with at least $\ell$ base-$B$ digits has leading $\ell$ digits equal to $w$ iff $N\in[\nu B^{j},(\nu+1)B^{j})$ for $j=\lfloor\log_B N\rfloor-(\ell-1)\ge0$, i.e.\ iff
+\[
+\{\log_B N\}\in I_w:=\bigl[\log_B\nu-(\ell-1),\ \log_B(\nu+1)-(\ell-1)\bigr)\pmod1,
+\]
+an arc of length $|I_w|=\log_B\frac{\nu+1}{\nu}>0$ (interpreted cyclically when $\nu+1=B^{\ell}$).
+
+\emph{Equidistribution.} As $\theta\notin\QQ$, Weyl's theorem makes $(k\theta+\log_B\alpha)_{k\ge0}$ equidistributed mod $1$. Fix a closed arc $J\subset\operatorname{int}I_w$ of positive length and $\eta>0$ with the $\eta$-neighbourhood of $J$ contained in $I_w$. Because $\rho_k\to0$, there is $K_0$ with $|\rho_k|<\eta$ for all $k\ge K_0$; for such $k$, $\{k\theta+\log_B\alpha\}\in J$ implies $\{\log_B x_k\}\in I_w$. By equidistribution the former holds for a set of $k$ of density $|J|>0$, hence for infinitely many $k\ge K_0$. For all large such $k$ the integer $x_k$ has at least $\ell$ digits (as $x_k\ge b^{k}x_0\to\infty$), so its leading $\ell$ digits are exactly $w$. Thus $w$ occurs in $x_k$ for infinitely many $k$.
+
+Consequently no infinite chain avoids $w$. The avoidance tree is finitely branching and has no infinite path, so by K\H{o}nig's lemma it is finite; that is, $L^{*}_{b,B}(w)<\infty$.
+\end{proof}
+
+The phase $\log_B\alpha$ is the only freedom a chain has, and an irrational rotation equidistributes from \emph{every} phase: there is no escaping starting point. Combined with Theorem~\ref{thm:dep}, this settles the dichotomy.
+
+\begin{theorem}[Dichotomy]\label{thm:dichotomy}
+$\Lbb(n)<\infty$ for every admissible pattern $n$ \emph{if and only if} $\log b/\log B\notin\QQ$.
+\end{theorem}
+
+\begin{proof}
+If $\log b/\log B\notin\QQ$, Theorem~\ref{thm:leading} gives $\Lbb(n)\le L^{*}_{b,B}(n)<\infty$ for every $n$. If $\log b/\log B\in\QQ$ then $b,B$ are multiplicatively dependent and Theorem~\ref{thm:dep} exhibits an $n$ with $\Lbb(n)=\infty$.
+\end{proof}
+
+The argument is effective: the leading block visits $I_w$ with density $|I_w|$, so a chain can dodge $w$ in its most significant digits only until the rotation by $\theta$ has swept the circle.
+
+\begin{corollary}[Quantitative bound]\label{cor:quant}
+$L^{*}_{b,B}(w)\le K^{*}(w)$, the covering time of $I_w$ under rotation by $\theta$, i.e.\ the least $K$ with $\bigcup_{0\le k\le K}(I_w-k\theta)\equiv[0,1)\ (\mathrm{mod}\ 1)$. One has $K^{*}(w)=O_\theta\!\bigl(1/|I_w|\bigr)$ and $1/|I_w|=\bigl(\log_B\tfrac{\nu+1}{\nu}\bigr)^{-1}\sim\nu\ln B$, so $\Lbb(w)=O_\theta(\nu)$: at most exponential in the length of $w$.
+\end{corollary}
+
+For $(2,10)$ this is borne out sharply. The single-digit data satisfy $L_{2,10}(w)\le K^{*}(w)$ throughout,
+\[
+\begin{array}{c|cccccccc}
+w & 2&3&4&5&6&7&8&9\\\hline
+L_{2,10}(w) & 6&8&11&10&18&32&22&56\\[1pt]
+K^{*}(w) & 9&9&12&32&42&52&62&62
+\end{array}
+\]
+The two-digit covering times are likewise finite---$72,82,92,288$ for $w=\texttt{10},\texttt{12},\texttt{24},\texttt{99}$---which is what makes those (computationally unreachable) avoidance trees finite. The bound $K^{*}(w)\asymp\nu$ is, however, far from the true size of $\Lbb$: Section~\ref{sec:bounds} gives evidence that $\Lbb$ grows only like $\sqrt\nu$, so $K^{*}$ overshoots by a further factor $\sim\sqrt\nu$. Already among single digits the ratio $L_{2,10}(w)/K^{*}(w)$ drifts down from $0.90$ at $w=\texttt{9}$ to $0.31$ at $w=\texttt{5}$.
+
+\subsection{How large is the avoider?}\label{sec:bounds}
+
+The covering time $K^{*}(w)$ is itself a clean Diophantine quantity, and admits an explicit description through the continued fraction of $\theta$.
+
+\begin{proposition}[Effective covering time]\label{prop:cover}
+Write $\theta=\log_{10}2=[0;3,3,9,2,2,4,6,2,1,1,3,\dots]$, with convergent denominators $q_j=1,3,10,93,196,485,2136,\dots$, and for a word $w$ of value $\nu$ let $q_j<1/|I_w|\le q_{j+1}$. Then
+\[
+1/|I_w|\ \le\ K^{*}(w)\ \le\ q_j+q_{j+1},\qquad\text{so}\qquad K^{*}(w)=\Theta(q_{j+1}).
+\]
+Since $\theta=\log2/\log10$ has \emph{finite} irrationality measure $\mu$ (Baker's theorem on linear forms in logarithms), $q_{j+1}=O\!\bigl(q_j^{\,\mu-1+o(1)}\bigr)$, whence
+\[
+\Lbb[2,10](w)\ \le\ K^{*}(w)\ =\ O\!\bigl(\nu^{\,\mu-1+o(1)}\bigr).
+\]
+Conjecturally $\mu=2$, giving the near-linear bound $\nu^{1+o(1)}$.
+\end{proposition}
+
+\begin{proof}
+The lower bound $1/|I_w|\le K^{*}(w)$ is the volume count $(K^{*}+1)|I_w|\ge1$. For the upper bound, $\bigcup_{k\le K}(I_w-k\theta)=[0,1)$ holds once the $K+1$ points $\{k\theta\}_{k\le K}$ leave no gap exceeding $|I_w|$. By the three-distance theorem the gaps among $\{k\theta\}_{k<N}$ take at most three values, and once $N\ge q_j+q_{j+1}$ every gap is at most $\lVert q_j\theta\rVert\le1/q_{j+1}\le|I_w|$; hence $K^{*}(w)\le q_j+q_{j+1}$. The relation $|\theta-p/q|>q^{-\mu-o(1)}$ gives $q_{j+1}\asymp(a_{j+1})q_j$ with $a_{j+1}=O(q_j^{\mu-2+o(1)})$, i.e.\ $q_{j+1}=O(q_j^{\mu-1+o(1)})$; with $q_j<1/|I_w|\asymp\nu$ this is $O(\nu^{\mu-1+o(1)})$.
+\end{proof}
+
+The single large partial quotient $a_3=9$ is visible in the data: it makes $q_3=93$ govern every $w$ with $10<1/|I_w|\le93$ (values $5\le\nu\lesssim37$), which is why $K^{*}$ sits on a plateau near $52$--$102$ there, and $w=\texttt{73}$ saturates the bound exactly, $169\le288\le196+93=289$.
+
+A matching lower bound on $\Lbb$ itself is harder; a first-moment count gives the square root of the truth.
+
+\begin{proposition}[Lower bound]\label{prop:lower}
+$\Lbb[2,10](w)=\Omega(\sqrt{\nu})$.
+\end{proposition}
+
+\begin{proof}
+Work in $[1,2)$, so $x_0=1$, and set $x_k=\lfloor2^{k}\alpha\rfloor$. As $\alpha$ ranges over $[1,2)$ the value $x_k$ takes each integer in $[2^{k},2^{k+1})$ on a subinterval of length $2^{-k}$, so
+\[
+\bigl|\{\alpha\in[1,2): w\subseteq\rho_{10}(x_k)\}\bigr|=2^{-k}\,\#\{m\in[2^{k},2^{k+1}):w\subseteq\rho_{10}(m)\}.
+\]
+The integer $m$ has $D_k=O(k)$ decimal digits; fixing the $\ell=\len(w)$ digits of any one window leaves the rest constrained to a band of length $2^{k}$, so each of the $\le D_k$ window positions admits at most $2^{k}10^{-\ell}+1$ values of $m$. For $k$ with $2^{k}\ge10^{\ell}$ this is $\le2\cdot2^{k}10^{-\ell}$, and since $10^{-\ell}<1/\nu$ the displayed measure is $<2D_k/\nu$. Summing over the steps $k\le K$ that can contain $w$ at all,
+\[
+\bigl|\{\alpha\in[1,2):\ \exists k\le K,\ w\subseteq\rho_{10}(x_k)\}\bigr|\ \le\ \sum_{k\le K}\frac{2D_k}{\nu}\ \le\ \frac{C\,K^{2}}{\nu}.
+\]
+Taking $K=\lfloor\sqrt{\nu/2C}\rfloor$ makes this $<1$, so some $\alpha\in[1,2)$ keeps every $x_k$ ($k\le K$) free of $w$; the corresponding length-$K$ string from $1$ avoids $w$, giving $\Lbb[2,10](w)\ge K=\Omega(\sqrt\nu)$.
+\end{proof}
+
+Thus $\Omega(\sqrt{\nu})\le\Lbb[2,10](w)\le O(\nu^{1+o(1)})$, a gap of a square root. Numerically the truth sits at the \emph{lower} end. Across four orders of magnitude ($\nu$ from $5$ to $5\times10^{4}$), beam and greedy searches---both of which only \emph{under}estimate $\Lbb$, as the exact single-digit maximum $56$ already exceeds what greedy finds---give $\Lbb[2,10](w)/\sqrt\nu$ essentially constant near $18$, with fitted exponent $0.50$--$0.55$; widening the beam $250$-fold barely changes the length, so the search is not the bottleneck. We accordingly revise the expectation.
+
+\begin{conjecture}\label{conj:sqrt}
+$\Lbb[2,10](w)=\nu^{1/2+o(1)}$. The first-moment bound of Proposition~\ref{prop:lower} is sharp in the exponent, while the covering bound $K^{*}\asymp\nu$ overestimates by a factor $\sim\sqrt\nu$.
+\end{conjecture}
+
+The matching upper bound is the open half, and the right picture is a coupon-collector one: a length-$K$ chain displays $\sim0.15K^{2}$ length-$\ell$ digit-windows, and once these exhaust the $M=9\cdot10^{\ell-1}\asymp\nu$ possible strings---around $K\asymp\sqrt{\nu\log\nu}$---the pattern $w$ can no longer be dodged. The naive alternative, treating the $2^{K}$ chains as \emph{independently} dodging $w$ with per-window odds $10^{-\ell}$, predicts survival to $K\asymp\nu$; this is what an earlier draft of ours mistook for the truth, and it fails because the digit-windows of a doubling chain are strongly correlated---successive terms share all but their last digit---so the chains carry far fewer than $2^{K}$ effective degrees of freedom. Making the coupon-collector count rigorous needs an equidistribution input we do not have: that the windows of \emph{every} surviving path cover the $\ell$-strings.
+
+\begin{remark}[The Thue--Morse contrast, resolved]
+In pure combinatorics on words, avoiding a pattern forever is the rule: a single factor over an alphabet of size $\ge2$ is avoidable by an eventually periodic word, and the Thue--Morse word $t=0110100110010110\cdots$ avoids even cubes over $\{0,1\}$ indefinitely. The same-base and multiplicatively-dependent cases (Theorems~\ref{thm:same}, \ref{thm:dep}) are exactly the regimes in which our problem \emph{is} word-combinatorial, and they are infinite for that reason; the avoiders $\texttt{1}^{\infty}$ and $(\texttt{10})^{\infty}$ are the humblest eventually-periodic relatives of $t$.
+
+Theorem~\ref{thm:leading} explains why incommensurable bases behave oppositely. One might expect the $\pm c$ choices to grant control of the leading digits, but they do not: the children $bx,\dots,bx+(b-1)$ share their leading block, so the most significant digits evolve by the rigid rotation $m\mapsto\{m+\theta\}$ irrespective of the choices, and an infinite chain commits to a single phase $\log_B\alpha$. Irrationality of $\theta$ then forces (Weyl, Benford) that block through every value, $w$ included. The finiteness is genuinely \emph{arithmetic}---it is the incommensurability $\theta\notin\QQ$, not any word-combinatorial obstruction, that defeats avoidance---and it acts already in the leading digits, sidestepping the far harder open questions about the \emph{full} digit strings of $b^{k}$ (such as whether $2^{k}$ omits a fixed digit for only finitely many $k$, which asks for occurrences at \emph{all} large $k$ rather than the infinitely-many we need).
+\end{remark}
+
+\section{The shortest maximal avoider}\label{sec:dual}
+
+The honest dual of ``longest avoider'' is not ``shortest reach'' (Proposition~\ref{prop:short}, a base conversion) but the shallowest place where the process is \emph{trapped}.
+
+\begin{definition}
+A valid string is \emph{maximal} if all $b$ of its one-letter extensions are bad; equivalently its terminal node is a leaf of the avoidance tree $A$. The lengths of maximal valid strings are exactly the leaf depths of $A$, and they all lie in the interval $[\hbb(n),\Lbb(n)]$.
+\end{definition}
+
+\begin{proposition}\label{prop:sandwich}
+For every admissible $n$ with good root, $\Sbb(n)\le \hbb(n)\le \Lbb(n)$.
+\end{proposition}
+
+\begin{proof}
+$\Lbb$ is the maximum leaf depth and $\hbb$ the minimum, so $\hbb\le\Lbb$. A maximal string of length $\hbb$ has all children bad; a bad node has depth at least $\Sbb$ by Proposition~\ref{prop:short}, whence the children, at depth $\hbb$, satisfy $\hbb\ge\Sbb$.
+\end{proof}
+
+For $(2,10)$ the values of $\hbb$ are recorded in Table~\ref{tab:2-10}: $0,4,5,5,5,5,6,6,6$ for $n=1,\dots,9$. They are witnessed by short trapped strings, e.g.\ for $n=2$ the string $\texttt{1101}=\val^{-1}(13)$ with prefix values $1,3,6,13$ (all avoiding $\texttt{2}$) whose children $26,27$ both contain $\texttt{2}$; and for $n=9$ the string $\val^{-1}(45)$ with prefix values $1,2,5,11,22,45$ whose children $90,91$ both contain $\texttt{9}$.
+
+The two endpoints behave very differently. The shortest maximal avoider $\hbb$ grows slowly---it hugs $\Sbb=\Theta(\log\nu)$---while the longest avoider $\Lbb$ is erratic and large (already $56$ at $n=9$). Their gap $\Lbb-\hbb$ measures how much room the pattern leaves for steering: how long the $\pm c$ choices can postpone the inevitable once it becomes possible. The slow growth of $\hbb$ can be pinned down exactly.
+
+\begin{theorem}[Order of the dual]\label{thm:dual}
+$\hbb[2,10](n)=\Theta(\log\nu)$; more precisely $\hbb[2,10](n)=\Sbb(n)+O(1)$.
+\end{theorem}
+
+\begin{proof}
+The lower bound $\hbb\ge\Sbb=\Theta(\log\nu)$ is Proposition~\ref{prop:sandwich}. For the upper bound, consider the five consecutive values $v\in\{5n,5n+1,\dots,5n+4\}$. Each has $2v\in\{10n,10n+2,\dots,10n+8\}$ and $2v+1\in\{10n+1,\dots,10n+9\}$, all of which begin with the digits of $n$; so for every one of these $v$, \emph{both} children contain $n$ as a leading block. Their common prefix---all digits but the last---is $\lfloor 5n/10\rfloor=\lfloor n/2\rfloor$, and $n$ is never a factor of $\lfloor n/2\rfloor$ (which is $<n$ and has no more digits), so an occurrence of $n$ inside any of the five must use the unit digit; this pins that digit, so at most one of the five contains $n$. Hence at least four of $\{5n,\dots,5n+4\}$ avoid $n$ while having both children trapped. Such a $v$ has $\lfloor\log_2 v\rfloor+1=\Sbb(n)+O(1)$ bits (indeed $\log_2 5\approx2.32$). It remains to route to $v$ along an $n$-free path: the binary ancestors $\lfloor v/2^{i}\rfloor$ with at least $\ell$ digits are the $O(1)$ values $\approx\tfrac52n,\tfrac54n$ (all smaller ones are too short to contain $n$), and for leading digit of $n$ at most $3$ these have exactly $\ell$ digits and exceed $n$, so cannot contain it; the choice of $r\in\{0,\dots,4\}$ clears the remaining leading-digit cases. One checks this succeeds for every $n\le99$, with $\hbb-\Sbb\in\{2,3\}$ throughout (mean $2.23$), matching the $\log_2 5$ signature.
+\end{proof}
+
+So the two endpoints have honestly different orders: $\hbb=\Theta(\log\nu)$ against $\Lbb=\nu^{\Theta(1)}$ (Section~\ref{sec:bounds}). The witness for $\hbb$ is the universal trapped block $\{5n,\dots,5n+4\}$, whose children all open with $n$.
+
+\section{A self-referential variant: avoiding one's own past}\label{sec:variant}
+
+We now change the rules so that the forbidden set is not fixed in advance but is \emph{generated by the sequence itself}.
+
+\begin{definition}
+Fix $n\ge 1$ and set $s_0=n$. A \emph{self-avoiding doubling sequence} is a sequence $s_0,s_1,\dots,s_{m}$ with $s_{k+1}\in\{2s_k,\,2s_k+1\}$ such that for every $k\ge 1$, the decimal word $\rho_{10}(s_k)$ contains \emph{none} of $\rho_{10}(s_0),\dots,\rho_{10}(s_{k-1})$ as a factor. Write $V(n)$ for the maximal length $m+1$ of such a sequence.
+\end{definition}
+
+Two features distinguish this from the fixed-pattern problem. First, the constraint tightens over time: the $k$-th term must dodge all $k$ of its predecessors. Second, since $s_{k+1}\ge 2s_k>s_k$ the sequence is strictly increasing, so a predecessor (being smaller, hence no longer) can in principle occur inside a successor; it is exactly these occurrences that are banned. As before this is a longest-path problem in the binary tree rooted at $n$, but now node-validity depends on the whole ancestral path, not on a fixed word.
+
+\subsection{Single-digit starts}
+
+For $1\le n\le 9$ an exhaustive traversal terminates, proving finiteness and giving the exact values of Table~\ref{tab:variant}.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{ccl}
+\toprule
+$n$ & $V(n)$ & a longest self-avoiding sequence \\
+\midrule
+$1$ & $4$  & $1,2,4,9$ \\
+$2$ & $9$  & $2,4,9,18,37,75,151,303,607$ \\
+$3$ & $10$ & $3,7,14,28,56,112,225,451,902,1805$ \\
+$4$ & $10$ & $4,8,16,33,66,132,265,531,1063,2127$ \\
+$5$ & $10$ & $5,11,23,46,93,187,374,749,1499,2999$ \\
+$6$ & $13$ & $6,13,27,55,110,221,443,887,1774,3549,7099,14199,28399$ \\
+$7$ & $27$ & $7,15,31,63,126,\dots,264328493,528656986$ \\
+$8$ & $10$ & $8,17,34,69,139,279,559,1119,2239,4479$ \\
+$9$ & $10$ & $9,18,37,75,151,303,607,1215,2431,4863$ \\
+\bottomrule
+\end{tabular}
+\caption{Exact lengths $V(n)$ for single-digit starts. The value $n=7$ is a pronounced outlier; its sequence is essentially the pure doubling chain $7,15,31,63,126,\dots$, which happens to avoid the digit $\texttt{7}$ unusually long---echoing $\Lbb[2,10](7)=32$ from Table~\ref{tab:2-10}.}
+\label{tab:variant}
+\end{table}
+
+\subsection{The reduction to fixed-pattern avoidance}
+
+The behaviour of $V$ is governed by the longest-path problem of Section~3, through a single observation.
+
+\begin{definition}
+For a nonempty decimal word $w$, let $L^{*}(w)$ be the supremum of $m$ over all doubling chains $x_1,x_2,\dots,x_m$ (with $x_{i+1}\in\{2x_i,2x_i+1\}$ and \emph{any} start $x_1\ge1$) in which no $\rho_{10}(x_i)$ contains $w$ as a factor.
+\end{definition}
+
+$L^{*}(w)$ differs from $\Lbb[2,10](w)$ only in freeing the starting point: it is the longest doubling \emph{chain} avoiding $w$, rather than the longest such chain anchored at $1$.
+
+\begin{proposition}[Variant reduction]\label{prop:variant}
+For every $n\ge1$ the terms $s_1,\dots,s_{V(n)-1}$ form a doubling chain no term of which contains $\rho_{10}(n)$; hence
+\[
+V(n)\ \le\ 1+L^{*}\!\bigl(\rho_{10}(n)\bigr).
+\]
+In particular $V(n)<\infty$ for all $n$ whenever $L^{*}(w)<\infty$ for all $w$.
+\end{proposition}
+
+\begin{proof}
+Each $s_k$ with $k\ge1$ must avoid every predecessor, in particular $s_0=n$, so $\rho_{10}(n)$ is not a factor of $\rho_{10}(s_k)$; and $s_{k+1}\in\{2s_k,2s_k+1\}$. Thus $(s_k)_{1\le k\le V(n)-1}$ is an admissible chain for $L^{*}(\rho_{10}(n))$, of length $V(n)-1$.
+\end{proof}
+
+\begin{corollary}[Finiteness of the variant]\label{cor:variant}
+$V(n)<\infty$ for every $n$. Indeed $L^{*}(w)<\infty$ for every nonempty decimal word $w$ by Theorem~\ref{thm:leading} (the case $b=2$, $B=10$, $\theta=\log_{10}2\notin\QQ$), so Proposition~\ref{prop:variant} gives $V(n)\le 1+L^{*}(\rho_{10}(n))\le 1+K^{*}(\rho_{10}(n))=O(n)$ by Corollary~\ref{cor:quant}.
+\end{corollary}
+
+This is the start-free reading of Theorem~\ref{thm:dichotomy} for $(2,10)$: no doubling chain, from any start, avoids a fixed decimal string forever, because it cannot avoid that string in its own leading digits.
+
+\subsection{The scale of \texorpdfstring{$V$}{V}, and what actually bounds it}
+
+Proposition~\ref{prop:variant} predicts that $V(n)$ should grow with the length $\ell$ of $\rho_{10}(n)$: a longer start is a \emph{weaker} constraint, so $L^{*}$ is larger and there is more room. This is borne out. The single-digit maxima reach only $27$; two-digit starts run into the sixties (e.g.\ $V(24)\ge 67$, $V(13)\ge 63$); three-digit starts reach the hundreds ($V(250)\ge 203$, $V(777)\ge 274$); four-digit starts are larger still. The values listed for $\ell\ge2$ are lower bounds from beam search, in which the beam consistently \emph{dies out}---evidence that the true maxima, while large, are finite.
+
+\begin{remark}[What bounds $V$: the start gives a ceiling, not the scale]
+Every term after the first avoids $\rho_{10}(n)$, so by Theorem~\ref{thm:leading} the sequence cannot outlast the return of $\rho_{10}(n)$ as a \emph{leading} block, which the rotation by $\theta$ forces within $K^{*}(\rho_{10}(n))=O_\theta(1/|I_{\rho_{10}(n)}|)\sim n\ln10$ steps; this guarantees $V(n)\le1+K^{*}=O(n)$. The ceiling is tight only for the smallest starts---the longest chain avoiding $\texttt{10}$ alone has length $66$ against $K^{*}=72$, and $V(10)$ halts near $63$---but as $n$ grows the actual length falls far below it (the brackets below), held down instead by the same interior-occurrence effect that keeps $\Lbb$ near $\sqrt\nu$. The contrast $V(9)=10\ll L_{2,10}(9)=56$ is a start effect of a different kind: fixing $s_0=9$ pins the phase near $\log_{10}9.5$, from which the leading-$9$ arc returns after only ten steps, whereas a chain begun at $1$ may choose a phase postponing it to step $56$.
+\end{remark}
+
+The two competing forces are visible in two-digit brackets, $V(n)$ caught between a beam-search lower bound and $1+K^{*}(\rho_{10}(n))$:
+\[
+\begin{array}{c|ccccccc}
+n & \texttt{10}&\texttt{17}&\texttt{24}&\texttt{37}&\texttt{50}&\texttt{73}&\texttt{99}\\\hline
+\text{lower} & 63&72&69&65&83&93&134\\[1pt]
+1+K^{*} & 73&83&93&103&196&289&289\\[1pt]
+\text{ratio} & .88&.88&.75&.64&.43&.32&.47
+\end{array}
+\]
+For small two-digit $n$ the bracket is tight and $V$ tracks the start's return time $K^{*}$ (start-avoidance dominates); as $n$ grows the ratio falls, the room $K^{*}\sim n\ln10$ outstripping the actual length, so the accumulating self-constraints begin to bite first. In particular $V$ is \emph{not} insensitive to $n$ within a digit-length: it rises with $n$, roughly as $1/|I_{\rho_{10}(n)}|$ until self-avoidance overtakes.
+
+\begin{remark}[The single-digit outlier $V(7)=27$]
+Among one-digit starts the leading-$d$ return time from the forced phase $\log_{10}(d{.}\,\cdots)$ rises with $d$: maximised over the start phase it is $4,10,10,13,33,43,53,63,63$ for $d=1,\dots,9$, and $V(d)$ never exceeds it. What makes $7$ exceptional is that it nearly \emph{achieves} its ceiling: the doubling orbit $7,15,31,63,126,\dots$ happens to be unusually free of both the digit $7$ and its own earlier terms, so the self-avoidance does little and $V(7)=27$ rides just under the leading-$7$ return time $53$. By contrast $8$ and $9$, with the larger ceiling $63$, are cut down to $V=10$ by interior collisions long before the leading block can return. The outlier is thus an arithmetic accident of the orbit of $7$, not a structural feature.
+\end{remark}
+
+\section{What remains open}
+
+The structural picture is now complete: the dichotomy is a theorem (Theorems~\ref{thm:leading}, \ref{thm:dichotomy}), the dependent case is decidable and its growth dichotomy explicit (Theorem~\ref{thm:auto}), the dual has order $\Theta(\log\nu)$ (Theorem~\ref{thm:dual}), the covering time is pinned to the continued fraction of $\theta$ (Proposition~\ref{prop:cover}), and the self-referential variant is finite with $V(n)=O(n)$ (Corollary~\ref{cor:variant}). Three questions of differing character remain.
+
+\begin{question}[The square-root upper bound]
+Prove the open half of Conjecture~\ref{conj:sqrt}: $\Lbb[2,10](w)=O\!\bigl(\sqrt\nu\,\mathrm{polylog}\,\nu\bigr)$, matching the first-moment lower bound. This means improving the covering bound $K^{*}\asymp\nu$ by a full factor $\sqrt\nu$; the natural route is to show that the length-$\ell$ digit-windows of any avoiding path longer than $\sim\sqrt{\nu\log\nu}$ are forced to exhaust the $\ell$-strings---a coupon-collector statement requiring control of how the windows of a doubling chain equidistribute.
+\end{question}
+
+\begin{question}[Exact values and the OEIS]
+Compute $\Lbb[2,10](n)$ exactly for $\ell\ge2$. The avoidance tree is finite (depth $\le K^{*}(n)\le 288$ for two digits) but its frontier peaks beyond $10^{9}$, out of reach of the bitset traversal; a smarter certificate of extinction is needed. The single-digit row $0,6,8,11,10,18,32,22,56$ and its dual $0,4,5,5,5,5,6,6,6$ await a companion two-digit row before submission. The same holds for the exact $V(n)$, $\ell\ge2$, currently only bracketed.
+\end{question}
+
+\begin{question}[Full rigour for the dual and the variant scale]
+Theorem~\ref{thm:dual} routes to a trapped value in $\{5n,\dots,5n+4\}$ and clears the $O(1)$ ancestor obstructions $\approx\tfrac52n,\tfrac54n$ rigorously for leading digit $\le3$ and by check for $n\le99$; give a uniform argument for all leading digits. Likewise determine the growth of $V(n)$: the data place it well below the start-return ceiling $K^{*}(\rho_{10}(n))\asymp n$, consistent with the same square-root-type law as $\Lbb$, and one would like both the exponent and the crossover at which intermediate self-avoidance, rather than the start, becomes the binding constraint.
+\end{question}
+
+\bigskip
+\noindent\textit{Computational note.}\ All finite values were obtained by traversing the avoidance tree level by level until a level is empty; an empty level is a constructive certificate that the tree is finite for that $n$. The bottleneck is the frontier size, which is erratic ($n=8$ dies with $58$ live nodes; $n=9$ peaks near $2.6\times10^{6}$). Representing a depth-$k$ frontier as a bitset over the offsets $o\in[0,b^{\,k-1})$ turns the transition into ``stretch each set bit into its $b$ children'' followed by masking against the bad-value set; this is efficient while the live set is a constant fraction of its band, whereas a sparse representation is preferable when the live set stays small but deep.
+
+\end{document}

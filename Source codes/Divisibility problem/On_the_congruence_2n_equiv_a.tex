@@ -1,0 +1,534 @@
+\documentclass[11pt,reqno]{amsart}
+\usepackage{lmodern}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amssymb,amsmath,amsthm,mathtools}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{float}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage[margin=1in]{geometry}
+\usepackage[colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,urlcolor=blue!50!black]{hyperref}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{thm}[theorem]{Theorem}
+\newtheorem{proposition}{Proposition}
+\newtheorem{lemma}{Lemma}
+\newtheorem{corollary}{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\newtheorem{example}{Example}
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+\newtheorem{observation}{Observation}
+\newtheorem{conjecture}{Conjecture}
+\newtheorem{question}{Question}
+
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\F}{\mathbb{F}}
+\newcommand{\ord}{\operatorname{ord}}
+\DeclareMathOperator{\lcm}{lcm}
+\newcommand{\gen}[1]{\langle #1 \rangle}
+\newcommand{\dvd}{\mid}
+\newcommand{\Sa}{S_a}
+\newcommand{\half}{\tfrac12}
+\DeclareMathOperator{\popcount}{w}
+
+\title[On the congruence $2^{n}\equiv a\pmod{n+1}$]{On the congruence $2^{n}\equiv a\pmod{n+1}$}
+\author{Robin Rovenszky}
+\author{notxxdog}
+\date{}
+\subjclass[2020]{Primary 11A07, 11Y11; Secondary 11A51, 11N25, 11Y05}
+\keywords{Power-of-two congruences, Fermat pseudoprimes, Carmichael numbers, multiplicative order, discrete logarithm, admissibility sieve, OEIS A245728}
+\thanks{Prepared with substantial assistance from an artificial-intelligence system; see the appendix on the use of artificial intelligence. Author contacts: Robin Rovenszky (\texttt{robincodes} on Discord) and notxxdog (\texttt{.notxxdog} on Discord).}
+
+\begin{document}
+
+\begin{abstract}
+For an integer $a$ let $\Sa=\{\,n\ge 1:\ (n+1)\dvd 2^{n}-a\,\}$; equivalently, with $m=n+1$, the set of $m\ge2$ with $m\dvd 2^{m-1}-a$. We classify these sets according to the shift $a$. Three regimes occur. For $a=0$ and for every $a=2^{j}$ with $j\ge0$ the set is infinite, and we exhibit an explicit one--parameter family of solutions; the mechanism is that the discrete--logarithm target $\log_2 a$ is the \emph{same} at every prime, which makes a Carmichael--type construction available. For $a=-1$ the set is empty, by a two--adic argument that uses only that $-1$ is a root of unity of bounded order; we show that no other $a$ admits an emptiness proof of this kind, and that $a=-1$ is in fact the only even--free value that is empty. For all remaining $a$ the basic question---finiteness, infinitude, and in some cases mere non--emptiness---is open, and we argue that every such case is exactly as intractable as the shift $a=-3$. We develop the conditional structure theory uniformly in $a$: a local admissibility sieve on the prime divisors of a solution, an interlocking--congruence description of squarefree solutions, the resulting reduction of the two--prime problem to the factorisation of a single integer $2^{p-1}-a$, and a criterion for repeated prime factors. The last shows in particular that the squarefreeness statement known for $a=-3$ is special to that shift and fails for, e.g., $a=9$, where $1715=5\cdot7^{3}$ is a solution. We finish with the heuristics, the computational evidence for $-20\le a\le 20$, and the open problems. We also record solutions for two open shifts---$S_{-7}$ contains $449\cdot14779$ and $7459\cdot23459$, and $S_5$ contains $701\cdot34851539\approx2.4\times10^{10}$---which leaves $a=-15$ as the only shift in $[-20,20]$ whose non--emptiness is undecided, the natural successor to the $a=-3$ question.
+\end{abstract}
+
+\maketitle
+\tableofcontents
+
+\section{Introduction}
+
+Fix $a\in\Z$ and put
+\[
+\Sa=\{\,n\ge1:\ (n+1)\dvd 2^{n}-a\,\}.
+\]
+Setting $m=n+1$ turns membership $n\in\Sa$ into the congruence
+\begin{equation}\label{eq:main}
+m\dvd 2^{m-1}-a,\qquad m\ge2.
+\end{equation}
+We work throughout with $m$ and identify $\Sa$ with the set of $m\ge2$ satisfying \eqref{eq:main}. The case $a=1$ is the familiar Fermat condition $2^{m-1}\equiv1$: every odd prime satisfies it, and the composite solutions are the base--$2$ Fermat pseudoprimes. The cases $a=-1$ and $a=-3$ are treated in the companion work \cite{prior}, where $S_{-1}$ is shown to be empty and, for $a=-3$, only two solutions are known, each a product of two primes, the larger exceeding $10^{18}$. The sequence of $n$ with $(n+1)\dvd2^{n}+3$ is \cite[A245728]{oeis}.
+
+The purpose of this paper is to treat \eqref{eq:main} for all $a$ at once and to explain why a handful of shifts are trivial---in one direction or the other---while every other shift inherits the full difficulty of the $a=-3$ problem. The outcome is a clean division of $\Z$ into three regions.
+
+\begin{theorem}[Classification]\label{thm:main}
+Let $a\in\Z$.
+\begin{enumerate}
+\item\emph{(Soluble, infinite.)} If $a=0$ then $\Sa=\{2^{t}:t\ge1\}$. If $a=2^{j}$ for some integer $j\ge0$, then $\Sa$ is infinite; indeed, writing $c=j+1=2^{s}c'$ with $c'$ odd and $e=\ord_{c'}(2)$, every prime $p$ with $p\nmid 2c$ and $p\equiv1\pmod e$ gives a solution $m=cp$.
+\item\emph{(Empty.)} $S_{-1}=\varnothing$. Moreover no even $a$ has $\Sa=\varnothing$, and the two--adic argument that proves $S_{-1}=\varnothing$ applies to no shift other than $a=\pm1$.
+\item\emph{(Open.)} For every other $a$ the basic questions are open: $\Sa$ is conjecturally infinite but extraordinarily sparse, no infinitude is known, no finiteness is known, and for the shifts $a$ with
+ $a-1=\pm2^{k}$ (the family of $a=-3$) even non--emptiness can be open.
+\end{enumerate}
+\end{theorem}
+
+The proof of (1) and (2) is elementary and occupies Sections \ref{sec:reductions}--\ref{sec:soluble}. Part (3) is not a theorem in the literal sense but a description of the state of knowledge; Sections \ref{sec:sieve}--\ref{sec:heuristics} make it precise by developing, uniformly in $a$, the structure theory that any solution must obey and by pinning down where the obstruction to a complete solution lies.
+
+A single elementary fact organises much of the discussion. For an \emph{odd prime} $p$, Fermat's little theorem reduces \eqref{eq:main} at $m=p$ to $1\equiv a\pmod p$, so
+\begin{equation}\label{eq:primes}
+p\in\Sa\iff p\dvd a-1\qquad(p\text{ an odd prime}).
+\end{equation}
+Thus the prime members of $\Sa$ are governed by the single number $a-1$: they are finite in number unless $a=1$, in which case $a-1=0$ and every odd prime qualifies. This is why $a=1$ is infinite for a trivial reason, why every member of $S_{-3}$ is composite (as $a-1=-4$ has no odd prime factor), and why the shifts with $a-1=\pm2^{k}$ are the hardest: they offer no prime solution to start from.
+
+Two features distinguish the soluble shifts of part (1) from everything else. At the level of the construction, a solution of the shape $m=cp$ forces, modulo the varying prime $p$, the relation $a\equiv 2^{c-1}$, so a one--parameter family of this kind can only produce a power of $2$. At the level of the gluing problem of Section \ref{sec:gluing}, a solution $m=p_1\cdots p_\omega$ requires each prime $p_i$ to meet a congruence whose target is $\log_2 a$ taken modulo $\ord_{p_i}(2)$; these targets are uniform in $i$ precisely when $a$ is a power of $2$, and it is this uniformity that lets one assemble infinitely many solutions, just as in the construction of Fermat pseudoprimes and Carmichael numbers \cite{cipolla,agp}. For a shift that is not a power of $2$ the targets genuinely vary from prime to prime, and no construction is known. The empty shift $a=-1$ escapes in the opposite manner: $-1$ is a root of unity of order $2$ modulo every odd prime, and this rigidity produces a global two--adic contradiction. No other shift is a root of unity of bounded order, so the contradiction is unavailable.
+
+\paragraph{Notation.} For an odd prime $p$ with $p\nmid2$ we write $d_p=\ord_p(2)$, the multiplicative order of $2$ in $\F_p^{\times}$. For $a$ with $\gcd(a,p)=1$ and $a\in\langle2\rangle\subseteq\F_p^{\times}$ we write $\log_2a$ for the least non--negative $k$ with $2^{k}\equiv a\pmod p$, and use the same notation modulo $p^{2}$ when needed. We write $v_2(N)$ for the two--adic valuation, $\omega(m)$ for the number of distinct prime factors, and reserve the letter $p$ for primes.
+
+\section{Elementary reductions}\label{sec:reductions}
+
+The following constraints hold for every shift and are used repeatedly.
+
+\begin{lemma}\label{lem:parity}
+Let $m\in\Sa$.
+\begin{enumerate}
+\item Every odd prime dividing $m$ is coprime to $a$; equivalently $\gcd(a,m)$ is a power of $2$.
+\item If $a$ is odd then $m$ is odd.
+\item If $a$ is even then $v_2(m)\le v_2(a)$.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+(1) If an odd prime $p$ divides both $a$ and $m$, then $p\dvd 2^{m-1}-a$ and $p\dvd a$ give $p\dvd2^{m-1}$, which is impossible. (2) For $m\ge2$ the number $2^{m-1}$ is even, so $2^{m-1}-a$ is odd when $a$ is odd, forcing $m$ odd. (3) Put $s=v_2(m)$. Since $m\ge 2^{s}$ we have $m-1\ge 2^{s}-1\ge s$, hence $2^{s}\dvd2^{m-1}$, and $2^{s}\dvd m\dvd 2^{m-1}-a$ gives $2^{s}\dvd a$.
+\end{proof}
+
+\begin{proposition}[Prime members]\label{prop:primes}
+For an odd prime $p$ one has $p\in\Sa$ iff $p\dvd a-1$. For $p=2$ one has $2\in\Sa$ iff $a$ is even. Consequently $\Sa$ contains infinitely many primes if and only if $a=1$; for $a\ne1$ the prime members are exactly the odd prime divisors of $a-1$, together with $2$ when $a$ is even.
+\end{proposition}
+
+\begin{proof}
+For odd $p$, $2^{p-1}\equiv1\pmod p$, so \eqref{eq:main} at $m=p$ reads $1\equiv a\pmod p$. For $p=2$ the condition is $2\dvd 2-a$. The corollary about infinitude is immediate, since $a-1=0$ only for $a=1$.
+\end{proof}
+
+\begin{corollary}\label{cor:nonempty}
+If $a$ is even then $2\in\Sa$, and if $a$ is odd with an odd prime factor $p\dvd a-1$ then $p\in\Sa$. Hence $\Sa=\varnothing$ forces $a$ to be odd with $a-1=\pm2^{k}$, i.e.
+\[
+a\in\{\,2^{k}+1:k\ge1\,\}\cup\{\,1-2^{k}:k\ge1\,\}=\{3,5,9,17,\dots\}\cup\{-1,-3,-7,-15,\dots\}.
+\]
+\end{corollary}
+
+Corollary \ref{cor:nonempty} isolates the only candidates for emptiness. We shall see that exactly one of them, $a=-1$, is provably empty, that several ($-7,-3,3,5,9,17,\dots$) are non--empty, and that for the remainder the question is open.
+
+\section{The soluble shifts}\label{sec:soluble}
+
+\subsection{The shift $a=0$}
+
+\begin{proposition}\label{prop:zero}
+$S_0=\{2^{t}:t\ge1\}$.
+\end{proposition}
+
+\begin{proof}
+The condition $m\dvd 2^{m-1}$ holds iff $m$ is a power of $2$. If $m=2^{t}$ then $t\le 2^{t}-1$, so $2^{t}\dvd2^{2^{t}-1}$ and $m\in S_0$. Conversely a divisor of a power of $2$ is a power of $2$.
+\end{proof}
+
+\subsection{Powers of two}
+
+\begin{theorem}\label{thm:powers}
+Let $j\ge0$ and $a=2^{j}$. Put $c=j+1$, write $c=2^{s}c'$ with $c'$ odd, and let $e=\ord_{c'}(2)$ (with $e=1$ if $c'=1$). For every prime $p$ with $p\nmid 2c$ and $p\equiv1\pmod e$, the integer $m=cp$ lies in $\Sa$. In particular $\Sa$ is infinite.
+\end{theorem}
+
+\begin{proof}
+We check $2^{m-1}\equiv a\pmod m$ on each of the coprime factors $p$, $2^{s}$, $c'$ of $m=cp$.
+
+Modulo $p$: since $cp-1\equiv c-1\pmod{p-1}$, Fermat gives $2^{m-1}=2^{cp-1}\equiv2^{c-1}=2^{j}=a$.
+
+Modulo $2^{s}$: both sides vanish. Indeed $m-1=cp-1\ge s$, so $2^{m-1}\equiv0$; and $a=2^{c-1}$ with $c-1\ge 2^{s}-1\ge s$, so $a\equiv0$.
+
+Modulo $c'$: as $2$ is a unit, $2^{m-1}\cdot 2^{-(c-1)}=2^{c(p-1)}$, and $e=\ord_{c'}(2)$ divides $p-1$ by hypothesis, hence divides $c(p-1)$; thus $2^{m-1}\equiv2^{c-1}=a\pmod{c'}$.
+
+By the Chinese remainder theorem $2^{m-1}\equiv a\pmod m$. There are infinitely many primes $p\equiv1\pmod e$ by Dirichlet, all but finitely many coprime to $2c$.
+\end{proof}
+
+\begin{example}
+The construction specialises as follows: $a=1$ ($c=1$) gives every odd prime; $a=2$ ($c=2$) gives $m=2p$ for all odd $p$; $a=4$ ($c=3$, $e=2$) gives $m=3p$ for all odd $p\ne3$; $a=8$ ($c=4$) gives $m=4p$; $a=16$ ($c=5$, $e=4$) gives $m=5p$ for $p\equiv1\pmod4$. Thus, for example, $6,10,14,\dots\in S_2$ and $15,21,33,\dots\in S_4$.
+\end{example}
+
+\begin{remark}\label{rem:onlypowers}
+A family of the shape $m=cp$ with $c$ fixed and $p\to\infty$ can only produce a power of $2$: reducing \eqref{eq:main} modulo $p$ gives $2^{c-1}\equiv a\pmod p$ for all $p$ in the family, whence $a=2^{c-1}$. The deeper reason that powers of $2$ are constructible while other shifts are not appears in Section \ref{sec:gluing}.
+\end{remark}
+
+\subsection{The empty shift $a=-1$}
+
+We prove $S_{-1}=\varnothing$ and isolate the property of $-1$ on which the argument depends.
+
+\begin{theorem}\label{thm:minusone}
+$S_{-1}=\varnothing$.
+\end{theorem}
+
+\begin{proof}
+Suppose $m>1$ satisfies $m\dvd2^{m-1}+1$. Then $2^{m-1}+1$ is odd, so $m$ is odd. Fix a prime $p\dvd m$ and put $d=d_p$. From $2^{m-1}\equiv-1\pmod p$ the order of $2^{m-1}$ in $\F_p^{\times}$ is $2$, that is $d/\gcd(d,m-1)=2$. Hence $g:=\gcd(d,m-1)=d/2$, so $v_2(g)=v_2(d)-1$. On the other hand $g=\gcd(d,m-1)$ has $v_2(g)=\min(v_2(d),v_2(m-1))$, and since this minimum is strictly less than $v_2(d)$ it equals $v_2(m-1)$. Therefore
+\[
+v_2(d)=v_2(m-1)+1.
+\]
+As $d\dvd p-1$, we get $v_2(p-1)\ge v_2(m-1)+1$. Writing $\nu=v_2(m-1)+1$, every prime $p\dvd m$ satisfies $p\equiv1\pmod{2^{\nu}}$; a product of such primes is $\equiv1\pmod{2^{\nu}}$, so $m\equiv1\pmod{2^{\nu}}$, i.e.\ $v_2(m-1)\ge\nu=v_2(m-1)+1$, a contradiction.
+\end{proof}
+
+\begin{remark}\label{rem:whyminusone}
+The argument needs $2^{2(m-1)}\equiv1\pmod p$ for every $p\dvd m$, which holds because $(-1)^{2}=1$ as an integer; the only shifts with $a^{2}=1$ are $a=\pm1$. For $a=1$ the same steps give $d\dvd m-1$ with no contradiction, consistent with $S_1$ being infinite. A mild generalisation---that the argument applies whenever $a\equiv-1\pmod p$ for all $p\dvd m$---constrains only those $m$ built from the finitely many prime divisors of $a+1$, and so yields no global emptiness when $a\ne-1$. Combined with Corollary \ref{cor:nonempty} (no even shift is empty), this is the precise sense in which $a=-1$ is the unique empty shift accessible by elementary means.
+\end{remark}
+
+\section{The local sieve}\label{sec:sieve}
+
+From here on we develop the structure that any solution of \eqref{eq:main} must obey, valid for every $a$. We assume $a$ is odd in this section, so that all solutions are odd by Lemma \ref{lem:parity}; the even case is similar with the obvious modifications at the prime $2$.
+
+\begin{lemma}[Local condition]\label{lem:local}
+Let $m\in\Sa$ and let $p$ be an odd prime with $p\dvd m$ and $p\nmid a$. Put $d=d_p$ and $t=m/p^{v_p(m)}$. Then $a\in\langle2\rangle\subseteq\F_p^{\times}$, and with $k=\log_2a$,
+\begin{equation}\label{eq:local}
+t\equiv k+1\pmod d.
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Since $d\dvd p-1$ we have $p\equiv1\pmod d$, hence $m\equiv t\pmod d$ and $m-1\equiv t-1\pmod d$. Then $2^{m-1}\equiv2^{t-1}\pmod p$, and as $2^{m-1}\equiv a$ this gives $2^{t-1}\equiv a\pmod p$, so $a\in\langle2\rangle$ and $t-1\equiv k\pmod d$.
+\end{proof}
+
+\begin{definition}\label{def:admissible}
+A prime $p\nmid 6a$ is \emph{$a$--admissible} if $a\in\langle2\rangle\pmod p$ and, with $d=d_p$ and $k=\log_2a$,
+\begin{itemize}
+\item[(A)] $d$ even $\Rightarrow$ $k$ even;
+\item[(B)] $3\dvd d$ $\Rightarrow$ $k\not\equiv2\pmod3$.
+\end{itemize}
+\end{definition}
+
+\begin{theorem}\label{thm:admissible}
+Let $a$ be odd. Every prime $p\nmid3a$ dividing a solution $m\in\Sa$ is $a$--admissible. Moreover, if $a\not\equiv1\pmod3$ then $3\nmid m$, and in that case condition \textnormal{(B)} is active.
+\end{theorem}
+
+\begin{proof}
+The cofactor $t=m/p^{v_p(m)}$ is odd, since $m$ is. Reducing \eqref{eq:local} modulo $2$: if $d$ is even then $t\equiv k+1\pmod2$, and $t$ odd forces $k$ even. For (B), first note that $m$ odd gives $2^{m-1}\equiv1\pmod3$, so if $3\dvd m$ then $a\equiv1\pmod3$; contrapositively, $a\not\equiv1\pmod3$ implies $3\nmid m$, hence $3\nmid t$. Reducing \eqref{eq:local} modulo $3$ when $3\dvd d$ gives $t\equiv k+1\pmod3$ with $t\not\equiv0$, so $k+1\not\equiv0$, i.e.\ $k\not\equiv2\pmod3$.
+\end{proof}
+
+For $a=-3$ one has $-3\equiv0\not\equiv1\pmod3$, so both conditions are active; Definition \ref{def:admissible} then reduces to the sieve of \cite{prior}. For shifts with $a\equiv1\pmod3$ condition (B) is vacuous and $3$ may divide $m$.
+
+\begin{remark}[No prime--power sharpening]\label{rem:nosharpen}
+Conditions (A) and (B) cannot be strengthened by replacing the moduli $2,3$ with higher prime powers. The constraints available on the cofactor $t$ in isolation are precisely $t$ odd and (when $a\not\equiv1\pmod3$) $3\nmid t$. If $2^{e}\dvd d$ then \eqref{eq:local} forces $t\equiv k+1\pmod{2^{e}}$; among these residues the requirement $t$ odd excludes a value of $k$ only through its parity, which is (A). Likewise $3^{f}\dvd d$ forces $t\equiv k+1\pmod{3^{f}}$, and $3\nmid t$ excludes a value of $k$ only through $k+1\bmod3$, which is (B). Any genuine sharpening must therefore come from the interaction of distinct prime factors, treated next.
+\end{remark}
+
+The sieve removes a positive proportion of primes as possible factors. Under an Artin--type heuristic \cite{hooley} the admissible primes have a positive logarithmic density; empirically this density is near $0.15$. The smallest admissible primes, however, depend erratically on $a$, and this is what governs how small the smallest solution can be (Section \ref{sec:heuristics}).
+
+\section{Gluing: interlocking congruences}\label{sec:gluing}
+
+The local conditions of Section \ref{sec:sieve} combine through the Chinese remainder theorem into a description of all solutions of a given shape.
+
+\begin{proposition}[Squarefree solutions]\label{prop:squarefree}
+Let $m=p_1\cdots p_\omega$ be squarefree with distinct odd primes $p_i\nmid a$. Then $m\in\Sa$ if and only if, for every $i$,
+\[
+a\in\langle2\rangle\pmod{p_i}\qquad\text{and}\qquad \prod_{j\ne i}p_j\equiv k_i+1\pmod{d_i},
+\]
+where $d_i=d_{p_i}$ and $k_i=\log_2a\bmod p_i$. In particular each $p_i$ is admissible.
+\end{proposition}
+
+\begin{proof}
+By the Chinese remainder theorem $m\dvd2^{m-1}-a$ iff $p_i\dvd2^{m-1}-a$ for all $i$, i.e.\ $2^{m-1}\equiv a\pmod{p_i}$, which requires $a\in\langle2\rangle$ and $m-1\equiv k_i\pmod{d_i}$. Since $p_i\equiv1\pmod{d_i}$ we have $m\equiv\prod_{j\ne i}p_j\pmod{d_i}$, giving the stated form.
+\end{proof}
+
+Thus a squarefree solution is a set of admissible primes whose product lands simultaneously in the prescribed class $k_i+1$ modulo each $d_i$. The targets $k_i=\log_2a\bmod d_i$ are the crux: they are uniform across $i$ exactly when $a$ is a power of $2$ (then $k_i\equiv j$), and it is this uniformity that underlies the construction of Theorem \ref{thm:powers} and, more generally, the classical constructions of pseudoprimes and Carmichael numbers \cite{cipolla,agp}. For a shift that is not a power of $2$ the targets vary with $i$, and no method is known to assemble infinitely many solutions.
+
+Specialising to two primes recovers, and slightly clarifies, the main computational tool.
+
+\begin{corollary}[Two primes]\label{cor:twoprime}
+Let $p<q$ be odd primes with $\gcd(pq,a)=1$. Then $pq\in\Sa$ iff
+\[
+q\dvd 2^{p-1}-a\qquad\text{and}\qquad p\dvd 2^{q-1}-a.
+\]
+Fixing $p$ and writing $N_p=2^{p-1}-a$, $d_p=\ord_p2$, $k_p=\log_2a\bmod p$ (assuming $a\in\langle2\rangle\bmod p$), this is equivalent to
+\[
+q\dvd N_p\qquad\text{and}\qquad q\equiv k_p+1\pmod{d_p}.
+\]
+\end{corollary}
+
+\begin{proof}
+Both primes must divide $2^{pq-1}-a$. Since $pq-1\equiv p-1\pmod{q-1}$ we have $2^{pq-1}\equiv2^{p-1}\pmod q$, so the condition at $q$ is $2^{p-1}\equiv a\pmod q$, i.e.\ $q\dvd N_p$. Symmetrically $2^{pq-1}\equiv2^{q-1}\pmod p$, so the condition at $p$ is $2^{q-1}\equiv a\pmod p$, i.e.\ $q-1\equiv k_p\pmod{d_p}$.
+\end{proof}
+
+\begin{remark}\label{rem:onesided}
+The condition at the larger prime is the divisibility $q\dvd N_p$, while the condition at the smaller prime is a single residue test modulo $d_p<p$. Hence, for a fixed smaller prime $p$, the two--prime solutions are obtained by factoring the one integer $N_p=2^{p-1}-a$ and testing which of its prime factors $q>p$ satisfy $q\equiv k_p+1\pmod{d_p}$. This is the basis of the search in Section \ref{sec:computation}.
+\end{remark}
+
+The same reduction works for any number of primes.
+
+\begin{corollary}[Recursive criterion]\label{cor:recursive}
+Let $p_1<\dots<p_\omega$ be distinct admissible primes, set $P=p_1\cdots p_{\omega-1}=m/p_\omega$ and $N_P=2^{P-1}-a$. Then $m=Pp_\omega\in\Sa$ iff
+\[
+p_\omega\dvd N_P\qquad\text{and}\qquad m\equiv k_i+1\pmod{d_i}\quad(1\le i\le\omega-1).
+\]
+The congruence at $p_\omega$ is automatic once $p_\omega\dvd N_P$.
+\end{corollary}
+
+\begin{proof}
+The congruence at $p_\omega$ reads $P\equiv k_\omega+1\pmod{d_\omega}$, i.e.\ $2^{P-1}\equiv a\pmod{p_\omega}$, i.e.\ $p_\omega\dvd N_P$; this holds for every prime factor of $N_P$. The remaining $\omega-1$ congruences are those of Proposition \ref{prop:squarefree}.
+\end{proof}
+
+To search for $\omega$--prime solutions extending a fixed tuple $(p_1,\dots,p_{\omega-1})$ one factors the single integer $N_P=2^{P-1}-a$ and residue--tests its prime factors. Two points limit the method. First, solutions do not nest: the smaller primes of a solution need not themselves form a solution, so one cannot grow long solutions from short ones. Second, $N_P$ has about $0.301\,P$ decimal digits, and $P$ is a product of admissible primes, hence grows super--exponentially in $\omega$. Even the smallest admissible primes make $N_P$ unfactorable beyond $\omega=3$. This computational wall is independent of $a$ and is the reason that only two--prime solutions are ever found by search.
+
+\section{Repeated prime factors}\label{sec:repeated}
+
+Whether a solution can fail to be squarefree is, by contrast with the previous sections, a property that depends sharply on $a$.
+
+Recall that $p$ is a \emph{Wieferich prime} (base $2$) if $2^{p-1}\equiv1\pmod{p^{2}}$; the only such primes below $4\times10^{3}$ are $1093$ and $3511$. For non--Wieferich $p$ one has $\ord_{p^{2}}(2)=p\,d_p$.
+
+\begin{lemma}\label{lem:wieferich}
+Let $m\in\Sa$ and let $p$ be a non--Wieferich prime with $p^{2}\dvd m$. Then $a\in\langle2\rangle\subseteq(\Z/p^{2})^{\times}$, and writing $\widetilde k=\log_2a\bmod p^{2}$,
+\[
+\widetilde k\equiv-1\pmod p.
+\]
+\end{lemma}
+
+\begin{proof}
+From $p^{2}\dvd2^{m-1}-a$ we get $2^{m-1}\equiv a\pmod{p^{2}}$, so $a\in\langle2\rangle$ modulo $p^{2}$ and $m-1\equiv\widetilde k\pmod{D}$ with $D=\ord_{p^{2}}(2)=p\,d_p$. As $p\dvd D$, reduce modulo $p$: $m-1\equiv\widetilde k\pmod p$. But $p^{2}\dvd m$ gives $m\equiv0\pmod p$, so $m-1\equiv-1$, whence $\widetilde k\equiv-1\pmod p$.
+\end{proof}
+
+For $a=-3$ a direct computation of $\widetilde k$ for each admissible $p<1093$ shows $\widetilde k\not\equiv-1\pmod p$ in every case; with Lemma \ref{lem:wieferich} this shows that, for $a=-3$, every solution is squarefree at all primes below $1093$. The next remark shows that this conclusion is special to the shift $-3$.
+
+\begin{remark}[Failure of squarefreeness]\label{rem:sqfree-fail}
+The congruence $\widetilde k\equiv-1\pmod p$ does occur for other shifts, and then $p^{2}\dvd m$ is permitted. Examples, verified directly:
+\[
+1715=5\cdot7^{3}\in S_{9},\qquad 49=7^{2}\in S_{15},\qquad 9=3^{2},\ 27=3^{3}\in S_{-5}.
+\]
+For $a=9$ the primes $p=5$ and $p=7$ both satisfy $\widetilde k\equiv-1$; for $a=15$ the prime $7$ does; for $a=-5$ the prime $3$ does. Thus the squarefreeness of solutions at small primes is not a general phenomenon but a coincidence of the discrete logarithms attached to a particular $a$.
+\end{remark}
+
+\section{Heuristics and the gradient of difficulty}\label{sec:heuristics}
+
+For shifts outside the soluble and empty regimes the only guide is heuristic, and two heuristics are worth recording.
+
+\paragraph{Global density.} Modelling $2^{m-1}-a\bmod m$ as uniform makes $m$ a solution with ``probability'' about $1/m$, and $\sum_{m\le X}1/m\sim\log X\to\infty$. The expectation diverges, predicting infinitely many solutions. This is the same divergent count that governs the Fermat pseudoprimes $a=1$, which are provably infinite \cite{cipolla,pomerance}. The shift $-a$ changes how prime factors glue but not the divergence.
+
+\paragraph{Count by number of prime factors.} Restricting to squarefree $m$ with exactly $\omega$ admissible prime factors and modelling the interlocking congruences of Proposition \ref{prop:squarefree} as independent gives, for the number of $\omega$--prime solutions up to $X$,
+\[
+E_\omega(X)\approx\frac1{\omega!}\Bigl(\sum_{\substack{p\le X\\ \text{admissible}}}\tfrac1p\Bigr)^{\!\omega}\approx\frac{(\delta\log\log X)^{\omega}}{\omega!},
+\]
+with $\delta$ the logarithmic density of admissible primes. Summing over $\omega\ge2$ gives $(\log X)^{\delta}-1-\delta\log\log X\to\infty$, again predicting infinitely many but only as a minuscule power of $\log X$. At every reachable height $\delta\log\log X<1$, so $E_\omega$ decreases with $\omega$ and two--prime solutions dominate; this is why the only solutions ever exhibited have two prime factors.
+
+These heuristics must be read with care, because they are overridden by algebra in exactly the soluble and empty cases. The global count would predict $S_{-1}$ infinite, yet $S_{-1}=\varnothing$; and it gives no hint that powers of $2$ are infinite for a structural reason. Where no algebraic structure is present---every shift that is neither a power of $2$ nor $-1$---the heuristics are all we have, and they favour an infinite but unreachable solution set.
+
+\paragraph{A gradient, not a dichotomy, among the hard shifts.} The hard shifts are uniform in their \emph{logical} difficulty: none is closer to being settled than $a=-3$. They differ only in how accessible a single solution is, and this accessibility is controlled by the size of the smallest admissible prime. By Corollary \ref{cor:nonempty} they split into two kinds.
+
+If $a$ is even, or $a-1$ has an odd prime factor, then a prime or the prime $2$ is already a solution; here non--emptiness is free and only infinitude is open.
+
+If $a$ is odd with $a-1=\pm2^{k}$, then there is no prime solution, and the situation mirrors $a=-3$. Among these shifts the smallest admissible primes vary erratically (Table \ref{tab:smallest}), and with them the size of the smallest solution: $a=9$ has admissible primes $5,7,11$ and the small solution $35=5\cdot7$, whereas $a=-3$ has admissible primes $13,19,61,67$ and its smallest solution exceeds $10^{10}$. Solutions are known for two further shifts of this family (Section \ref{sec:computation}): $S_{-7}$ contains $449\cdot14779=6635771$ and $7459\cdot23459=174980681$, and $S_5$ contains $701\cdot34851539=24430928839\approx2.4\times10^{10}$. This leaves $a=-15$ as the only shift in $[-20,20]$ with no known solution, and whether $S_{-15}$ is empty is open---the direct continuation of the $a=-3$ question.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{rl l}
+\toprule
+$a$ & smallest admissible primes & smallest known solution\\
+\midrule
+$9$ & $5,7,11,23,\dots$ & $35=5\cdot7$\\
+$3$ & $11,13,23,\dots$ & $10669=47\cdot227$\\
+$17$ & $19,47,53,\dots$ & $150281=67\cdot2243$\\
+$-3$ & $13,19,61,67,\dots$ & $61\cdot228806497\approx1.4\times10^{10}$\\
+$5$ & $11,19,29,\dots$ & $701\cdot34851539\approx2.4\times10^{10}$\\
+$-7$ & $11,23,29,\dots$ & $449\cdot14779\approx6.6\times10^{6}$\\
+$-15$ & $23,31,47,\dots$ & none known\\
+\bottomrule
+\end{tabular}
+\caption{Shifts with $a-1=\pm2^{k}$, $a$ odd. The smallest admissible prime, an arithmetic accident, governs how small a solution can be; logical difficulty is the same throughout.}
+\label{tab:smallest}
+\end{table}
+
+\section{Computational evidence}\label{sec:computation}
+
+\paragraph{Method.} For a single pass we compute $r_m=2^{m-1}\bmod m$ for each $m$ up to a bound; then $m\in\Sa$ for $|a|<m$ precisely when $a\equiv r_m\pmod m$, i.e.\ $a=r_m$ or $a=r_m-m$. This finds every solution of every shift $a\in[-20,20]$ in one sweep (small $m$ with $m\le|a|$ are checked separately). At $m\le2\times10^{6}$ the sweep is a quick \texttt{sympy} computation; for the frontier shifts $a\in\{5,-7,-15\}$ it was pushed to $m\le10^{10}$, and beyond $2.4\times10^{10}$ for $a=5$, with a dedicated multi--threaded implementation using Montgomery modular exponentiation, wheel sieving and small--prime filtering. For the two--prime search we use Remark \ref{rem:onesided}: for each admissible smaller prime $p$ we factor $N_p=2^{p-1}-a$ and test its prime factors $q>p$ against $q\equiv k_p+1\pmod{d_p}$. The factorisations were carried out with trial division, Pollard $\rho$, and ECM in \texttt{sympy}.
+
+\paragraph{Findings.} The prime members observed for every $a\in[-20,20]$ agree exactly with Proposition \ref{prop:primes}. The two--prime search recovers both known solutions of $S_{-3}$, namely $61\cdot228806497$ and $67\cdot44210291368986343$, and also produces $47\cdot227\in S_3$, $67\cdot2243$ and $19\cdot262127\in S_{17}$, and small solutions of $S_9$ and $S_{-5}$. It returns nothing for $a\in\{5,-7,-15\}$ with smaller prime up to $110$; the extended sweep, however, settles two of these three frontier shifts:
+\[
+S_{-7}\ni 449\cdot14779=6635771\ \text{and}\ 7459\cdot23459=174980681,
+\qquad
+S_5\ni 701\cdot34851539=24430928839.
+\]
+Both $S_{-7}$ solutions lie below $10^{10}$ and are the only members there; $S_5$ has no member below $10^{10}$, its smallest known one sitting at $\approx2.44\times10^{10}$. All three are products of two primes whose smaller prime ($449$, $7459$, $701$) exceeds the $110$ cutoff of the two--prime search---which is why only the direct sweep finds them---and each satisfies the criterion of Corollary \ref{cor:twoprime}. For $a=-15$ both searches return nothing. The complete classification for $-20\le a\le20$ is recorded in Table \ref{tab:full}.
+
+\begin{remark}[$a=-7$ mirrors $a=-3$]\label{rem:minus7}
+The two known members of $S_{-7}$ reproduce, in miniature, the profile of $S_{-3}$: the search returns exactly two solutions, each a product of two primes, and then nothing below the bound. They are smaller by several orders of magnitude---$449\cdot14779=6635771\approx6.6\times10^{6}$ and $7459\cdot23459=174980681\approx1.7\times10^{8}$, against $61\cdot228806497\approx1.4\times10^{10}$ and $67\cdot44210291368986343\approx3\times10^{18}$ for $S_{-3}$. Both shifts lie in the family $a-1=-2^{k}$ ($-3=1-2^{2}$, $-7=1-2^{3}$) and offer no prime solution, so each is a genuine instance of the hard regime; the order--of--magnitude gap between them is precisely the arithmetic accident of Section \ref{sec:heuristics}, not a difference in logical difficulty. The ``two semiprimes, then silence'' shape is exactly what leaves finiteness versus infinitude inaccessible to computation.
+\end{remark}
+
+\section{Summary: reductions and regimes}\label{sec:summary}
+
+By a \emph{reduction} we mean a result that decides, for at least one shift $a$, either its regime or its (non)emptiness. The proofs of this paper rest on exactly five such reductions; the lemmas of Sections \ref{sec:sieve}--\ref{sec:repeated} constrain the shape of solutions but decide no shift's fate on their own.
+
+\begin{itemize}
+\item[\textbf{R1}] (Proposition \ref{prop:primes}, prime members.) For an odd prime $p$, $p\in\Sa$ iff $p\dvd a-1$. \emph{Decides:} $a=1$ is infinite, since $a-1=0$ puts every odd prime in $S_1$.
+\item[\textbf{R2}] (Corollary \ref{cor:nonempty}, non--emptiness.) If $a$ is even, or $a$ is odd with an odd prime factor of $a-1$, then $\Sa\ne\varnothing$. \emph{Decides:} non--emptiness of every such $a$. In the range $|a|\le20$ this leaves undecided only the eight shifts with $a-1=\pm2^{k}$, namely $-15,-7,-3,-1,3,5,9,17$.
+\item[\textbf{R3}] (Proposition \ref{prop:zero}.) $S_0=\{2^{t}:t\ge1\}$. \emph{Decides:} $a=0$ completely (infinite).
+\item[\textbf{R4}] (Theorem \ref{thm:powers}, powers of two.) For every $j\ge0$, $S_{2^{j}}$ is infinite via $m=(j+1)p$. \emph{Decides:} $a\in\{1,2,4,8,16,\dots\}$ infinite.
+\item[\textbf{R5}] (Theorem \ref{thm:minusone}.) $S_{-1}=\varnothing$. \emph{Decides:} $a=-1$ empty.
+\end{itemize}
+
+R1 and R4 overlap at $a=1$, and R3, R4 between them settle the entire soluble regime $\{0\}\cup\{2^{j}\}$; R5 settles the empty regime; R2 settles non--emptiness for all but the eight $a-1=\pm2^{k}$ shifts. For six of those eight ($-3,3,9,17,5,-7$) non--emptiness is established not by a reduction but by an explicit solution found through the search of Corollary \ref{cor:twoprime} and its extended sweep; the smallest solutions for $-3$ and $5$ exceed $10^{10}$ ($\approx1.4\times10^{10}$ and $\approx2.4\times10^{10}$), while $-7$, though it too offers no prime solution, has its smallest solution already at $\approx6.6\times10^{6}$. This leaves a single shift in range, $a=-15$, with non--emptiness undecided: no reduction applies and no solution is known. Were one found, every $S_a$ with $|a|\le20$ would be non--empty, and the open question for the whole range would shift from existence to distribution---where the heuristics of Section \ref{sec:heuristics} predict each open $S_a$ is infinite. Everything in Table \ref{tab:full} is an instance of this analysis.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{r l l r r l}
+\toprule
+$a$ & regime & non--empty? & smallest known $m$ & $\#\{m\le2\!\times\!10^{6}\}$ & odd primes $\mid a-1$\\
+\midrule
+$-20$ & open & yes & 2 & 10 & $3,\,7$ \\
+$-19$ & open & yes & 5 & 3 & $5$ \\
+$-18$ & open & yes & 2 & 6 & $19$ \\
+$-17$ & open & yes & 3 & 6 & $3$ \\
+$-16$ & open & yes & 2 & 15 & $17$ \\
+$-15$ & open & \textbf{undecided} & none known & 0 & --- \\
+$-14$ & open & yes & 2 & 10 & $3,\,5$ \\
+$-13$ & open & yes & 7 & 3 & $7$ \\
+$-12$ & open & yes & 2 & 13 & $13$ \\
+$-11$ & open & yes & 3 & 5 & $3$ \\
+$-10$ & open & yes & 2 & 6 & $11$ \\
+$-9$ & open & yes & 5 & 5 & $5$ \\
+$-8$ & open & yes & 2 & 29 & $3$ \\
+$-7$ & open & yes & $6635771$ & 0 & --- \\
+$-6$ & open & yes & 2 & 5 & $7$ \\
+$-5$ & open & yes & 3 & 6 & $3$ \\
+$-4$ & open & yes & 2 & 30 & $5$ \\
+$-3$ & open & yes (huge) & $\approx1.4\times10^{10}$ & 0 & --- \\
+$-2$ & open & yes & 2 & 4 & $3$ \\
+$-1$ & empty & no & --- & 0 & --- \\
+$0$ & soluble & yes ($\infty$) & 2 & $2^{t}$ only & --- \\
+$1$ & soluble & yes ($\infty$) & 3 & $149286$ & all odd primes \\
+$2$ & soluble & yes ($\infty$) & 2 & $78967$ & --- \\
+$3$ & open & yes & 10669 & 1 & --- \\
+$4$ & soluble & yes ($\infty$) & 2 & $54616$ & $3$ \\
+$5$ & open & yes (huge) & $\approx2.4\times10^{10}$ & 0 & --- \\
+$6$ & open & yes & 2 & 5 & $5$ \\
+$7$ & open & yes & 3 & 1 & $3$ \\
+$8$ & soluble & yes ($\infty$) & 2 & $42152$ & $7$ \\
+$9$ & open & yes & 35 & 14 & --- \\
+$10$ & open & yes & 2 & 3 & $3$ \\
+$11$ & open & yes & 5 & 1 & $5$ \\
+$12$ & open & yes & 2 & 6 & $11$ \\
+$13$ & open & yes & 3 & 5 & $3$ \\
+$14$ & open & yes & 2 & 8 & $13$ \\
+$15$ & open & yes & 7 & 4 & $7$ \\
+$16$ & soluble & yes ($\infty$) & 2 & $17365$ & $3,\,5$ \\
+$17$ & open & yes & 150281 & 1 & --- \\
+$18$ & open & yes & 2 & 7 & $17$ \\
+$19$ & open & yes & 3 & 3 & $3$ \\
+$20$ & open & yes & 2 & 8 & $19$ \\
+\bottomrule
+\end{tabular}
+\caption{Every integer shift $-20\le a\le20$. ``Regime'' is one of \emph{soluble} (proved infinite, R3--R4), \emph{empty} (R5), or \emph{open}. The ``non--empty?'' column is decided by R2 for every shift with an odd prime factor of $a-1$ (last column non--empty) and for every even shift (then $2\in\Sa$, smallest known $m=2$); the six open shifts $-3,3,9,17,5,-7$ are non--empty by an exhibited solution; and exactly one in range, $a=-15$, has non--emptiness undecided. Counts are exact for $m\le2\times10^{6}$; the soluble counts grow with the bound, while open shifts show only a handful, the signature of a sparse set fed by a positive--density sieve. The shifts $a=-3$ and $a=-7$ have no solution below the bound but two known above it; $a=5$ has its single known solution near $2.4\times10^{10}$.}
+\label{tab:full}
+\end{table}
+
+\medskip
+
+Table \ref{tab:full} records what is known about each set; Table \ref{tab:verified} records how hard each was looked at. By a search bound we mean the largest power of ten below which the set has been certified complete, and by the method that produced it we mean the reduction or search responsible for the smallest known solution. The single--pass sweep was carried to $2\times10^{6}$ for every shift, so all $m\le10^{6}$ are certified throughout; it was extended to $10^{10}$ for the frontier shifts $a\in\{5,-7,-15\}$---and just past the smallest solution, at $\approx2.4\times10^{10}$, for $a=5$---and to $10^{15}$ for $a=-3$, in agreement with \cite{oeis}. The two--prime search of Corollary \ref{cor:twoprime} was run independently for every admissible smaller prime $p\le110$; because its reach is set by the \emph{smaller} prime and not by the magnitude of $m$, it certifies two--prime solutions of any size---it recovers the $\approx3\times10^{18}$ member of $S_{-3}$---but it does not see $S_5$ or $S_{-7}$, whose smaller primes ($701$, and $449,7459$) exceed the cutoff and which the extended sweep alone resolves. For the soluble shifts ($a=0$ and $a=2^{j}$) and the empty shift ($a=-1$) the answer holds for all $n$ by R3--R5, so no finite bound is relevant; the sweep was nonetheless run over them to $2\times10^{6}$ as a consistency check.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{r l c l}
+\toprule
+$a$ & verified up to & two--prime reach & key result\\
+\midrule
+$-20$ & $10^{6}$ & $p\le110$ & R2 \\
+$-19$ & $10^{6}$ & $p\le110$ & R2 \\
+$-18$ & $10^{6}$ & $p\le110$ & R2 \\
+$-17$ & $10^{6}$ & $p\le110$ & R2 \\
+$-16$ & $10^{6}$ & $p\le110$ & R2 \\
+$-15$ & $10^{10}$ & $p\le110$ & open \\
+$-14$ & $10^{6}$ & $p\le110$ & R2 \\
+$-13$ & $10^{6}$ & $p\le110$ & R2 \\
+$-12$ & $10^{6}$ & $p\le110$ & R2 \\
+$-11$ & $10^{6}$ & $p\le110$ & R2 \\
+$-10$ & $10^{6}$ & $p\le110$ & R2 \\
+$-9$ & $10^{6}$ & $p\le110$ & R2 \\
+$-8$ & $10^{6}$ & $p\le110$ & R2 \\
+$-7$ & $10^{10}$ & $p\le110$ & sweep \\
+$-6$ & $10^{6}$ & $p\le110$ & R2 \\
+$-5$ & $10^{6}$ & $p\le110$ & R2 \\
+$-4$ & $10^{6}$ & $p\le110$ & R2 \\
+$-3$ & $10^{15}$ & $p\le110$ & two--prime \\
+$-2$ & $10^{6}$ & $p\le110$ & R2 \\
+$-1$ & all $n$ & --- & R5 (empty) \\
+$0$ & all $n$ & --- & R3 \\
+$1$ & all $n$ & --- & R1, R4 \\
+$2$ & all $n$ & --- & R4 \\
+$3$ & $10^{6}$ & $p\le110$ & two--prime \\
+$4$ & all $n$ & --- & R4 \\
+$5$ & $10^{10}$ & $p\le110$ & sweep \\
+$6$ & $10^{6}$ & $p\le110$ & R2 \\
+$7$ & $10^{6}$ & $p\le110$ & R2 \\
+$8$ & all $n$ & --- & R4 \\
+$9$ & $10^{6}$ & $p\le110$ & two--prime \\
+$10$ & $10^{6}$ & $p\le110$ & R2 \\
+$11$ & $10^{6}$ & $p\le110$ & R2 \\
+$12$ & $10^{6}$ & $p\le110$ & R2 \\
+$13$ & $10^{6}$ & $p\le110$ & R2 \\
+$14$ & $10^{6}$ & $p\le110$ & R2 \\
+$15$ & $10^{6}$ & $p\le110$ & R2 \\
+$16$ & all $n$ & --- & R4 \\
+$17$ & $10^{6}$ & $p\le110$ & two--prime \\
+$18$ & $10^{6}$ & $p\le110$ & R2 \\
+$19$ & $10^{6}$ & $p\le110$ & R2 \\
+$20$ & $10^{6}$ & $p\le110$ & R2 \\
+\bottomrule
+\end{tabular}
+\caption{How far each $S_a$, $-20\le a\le20$, has been searched and by what means. \emph{Verified up to}: the largest power of ten $10^{k}$ such that every $m\le10^{k}$ has been certified by the single--pass sweep, so that the only solutions below this bound are those in Table \ref{tab:full}; ``all $n$'' marks the shifts settled for every $n$ by R3--R5 (the $2\times10^{6}$ sweep over them is only a check). \emph{Two--prime reach}: the largest smaller prime $p$ tried in the factoring search of Corollary \ref{cor:twoprime} and Remark \ref{rem:onesided}; this locates $pq\in\Sa$ with $p\le110$ irrespective of the size of $q$. \emph{Key result}: the reduction or search that settles the shift---\textbf{R2} a prime (or $2$) member, \textbf{R3}/\textbf{R4} the soluble construction, \textbf{R5} the emptiness proof, \emph{two--prime} a solution from the factoring search ($p\le110$, smaller primes here $47,67,5,61,67$ for $3,17,9,-3$), \emph{sweep} a solution found only by the extended single--pass search because its smaller prime exceeds $110$ ($701$ for $5$; $449,7459$ for $-7$), and \emph{open} non--emptiness still undecided ($-15$).}
+\label{tab:verified}
+\end{table}
+
+\section{Open problems}\label{sec:open}
+
+\begin{enumerate}
+\item \emph{Is any open $\Sa$ finite?} This is open for every shift outside $\{0,-1\}\cup\{2^{j}\}$. A proof of finiteness would require an upper bound, uniform in $p$, on the number of prime factors of $2^{p-1}-a$ lying in prescribed residue classes, which is beyond present analytic number theory.
+\item \emph{Is any open $\Sa$ infinite?} Equally open. The constructions that settle the powers of $2$ (and the classical pseudoprime constructions) rely on the discrete--logarithm targets being uniform across primes; for a shift that is not a power of $2$ these targets vary, and no construction is known.
+\item \emph{The last frontier shift.} Is $S_{-15}$ empty? With the solutions exhibited here for $S_{-7}$ and $S_5$ (Section \ref{sec:computation}), $a=-15$ is the unique shift in $[-20,20]$ whose non--emptiness is undecided, and the immediate successor of the $a=-3$ question. A single exhibited solution would settle it; a proof of emptiness would require a mechanism beyond the root--of--unity argument, which is unavailable here. Should such a solution be found, every $S_a$ with $|a|\le20$ would be non--empty---closing the existence question across the whole range and redirecting the problem toward distribution, where the heuristics of Section \ref{sec:heuristics} predict each open $S_a$ is infinite. Proving infinitude for even a single hard shift would then be the natural next goal.
+\item \emph{Squarefreeness.} By Lemma \ref{lem:wieferich} a repeated prime factor $p$ forces $\widetilde k\equiv-1\pmod p$ at non--Wieferich $p$; this fails for $a=-3$ at all small primes but holds for $a=9,15,-5$ at small primes. For which $a$ are solutions squarefree at small primes, and is there a clean description in terms of $a$ of the set of $p$ with $\widetilde k\equiv-1$?
+\item \emph{General even shifts.} The even shifts admit both even and odd solutions and the prime $2$ is always present; a systematic treatment of the even regime, parallel to Sections \ref{sec:sieve}--\ref{sec:gluing}, remains to be written out.
+\end{enumerate}
+
+\appendix
+
+\section{Computational programs}\label{app:programs}
+The programs used for the computations of Section~\ref{sec:computation}---the single--pass residue sweep, the dedicated multi--threaded extended sweep (Montgomery modular exponentiation, wheel sieving, and small--prime filtering), and the two--prime factoring search---are available at
+\begin{center}
+\url{https://github.com/RobinCodes/Projects/tree/main/Divisibility%20problem}.
+\end{center}
+The factorisations, the discrete--logarithm verifications, and the sieve data were carried out with \texttt{sympy}.
+
+\section{Note on the use of artificial intelligence}\label{app:ai}
+This work was prepared with substantial assistance from an artificial-intelligence system, and most of the results presented here---both the structural theory of Sections~\ref{sec:reductions}--\ref{sec:repeated} and the computations of Section~\ref{sec:computation} (the single--pass residue sweep, the extended multi--threaded sweep, and the two--prime factoring search)---were created with such assistance. We do not specify the particular system used; readers seeking further detail about the methods are invited to contact the authors: Robin Rovenszky (\texttt{robincodes} on Discord) and notxxdog (\texttt{.notxxdog} on Discord).
+
+No result here is accepted on the basis of machine assertion. Every definition, lemma, and proof is stated so as to be checkable by hand, and every computational claim is reproducible by re-running the programs of Appendix~\ref{app:programs}.
+
+\begin{thebibliography}{9}
+
+\bibitem{prior}
+R.~Rovenszky and notxxdog, \emph{On the congruences $2^{n}\equiv-1$ and $2^{n}\equiv-3\pmod{n+1}$}, companion manuscript.
+
+\bibitem{oeis}
+OEIS Foundation Inc., entry A245728 in \emph{The On--Line Encyclopedia of Integer Sequences}, \url{https://oeis.org/A245728}.
+
+\bibitem{cipolla}
+M.~Cipolla, \emph{Sui numeri composti $P$ che verificano la congruenza di Fermat $a^{P-1}\equiv1\pmod P$}, Annali di Matematica Pura ed Applicata \textbf{9} (1904), 139--160.
+
+\bibitem{pomerance}
+C.~Pomerance, J.~L.~Selfridge, S.~S.~Wagstaff, Jr., \emph{The pseudoprimes to $25\cdot10^{9}$}, Math.\ Comp.\ \textbf{35} (1980), 1003--1026.
+
+\bibitem{agp}
+W.~R.~Alford, A.~Granville, C.~Pomerance, \emph{There are infinitely many Carmichael numbers}, Ann.\ of Math.\ \textbf{139} (1994), 703--722.
+
+\bibitem{hooley}
+C.~Hooley, \emph{On Artin's conjecture}, J.\ Reine Angew.\ Math.\ \textbf{225} (1967), 209--220.
+
+\end{thebibliography}
+
+\end{document}
